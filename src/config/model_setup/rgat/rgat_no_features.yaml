@@ -1,0 +1,22 @@
+# src/config/model_setup/rgat/rgat_none.yaml
+
+graph:
+  type: heterogeneous
+  num_neighbors: [10, 8]
+  node_features: none
+
+model:
+  name: rgat
+  hidden_dim: 32
+  num_layers: 2
+  heads: 4
+  dropout: 0.3
+  num_classes: 4
+
+training:
+  device: cuda
+  batch_size: 256
+  epochs: 500
+  lr: 0.005
+  weight_decay: 0.0001
+  patience: 50

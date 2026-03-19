@@ -1,0 +1,21 @@
+# src/config/model_setup/rgcn/rgcn_all.yaml
+
+graph:
+  type: heterogeneous
+  num_neighbors: [7, 4]
+  node_features: all
+
+model:
+  name: rgcn
+  hidden_dim: 32
+  num_layers: 2
+  dropout: 0.3
+  num_classes: 4
+
+training:
+  device: cuda
+  batch_size: 256
+  epochs: 500
+  lr: 0.005
+  weight_decay: 0.0001
+  patience: 50
