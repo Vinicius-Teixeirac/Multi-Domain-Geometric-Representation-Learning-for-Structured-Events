@@ -107,6 +107,15 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument(
+        "--datasets",
+        type=str,
+        nargs="*",
+        default=None,
+        help="Dataset names to process (stems of .parquet files in data/raw/). "
+             "Defaults to all discovered datasets.",
+    )
+
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Recompute all stages (ignore cached artifacts)",
@@ -146,8 +155,15 @@ def main():
     args = parse_args()
     set_seed(args.seed)
 
-    datasets = discover_datasets(paths.RAW_DATA)
-    logger.info(f"Discovered datasets: {datasets}")
+    all_datasets = discover_datasets(paths.RAW_DATA)
+    if args.datasets:
+        unknown = set(args.datasets) - set(all_datasets)
+        if unknown:
+            raise ValueError(f"Unknown datasets (not found in data/raw/): {sorted(unknown)}")
+        datasets = [d for d in all_datasets if d in set(args.datasets)]
+    else:
+        datasets = all_datasets
+    logger.info(f"Datasets to process: {datasets}")
 
     mlp_configs = load_configs(args.mlp_configs)
     gnn_configs = load_configs(args.gnn_configs)
