@@ -12,7 +12,7 @@ from torch.nn.parameter import UninitializedParameter
 from src.training.train import train_model
 from src.testing.evaluate import evaluate_model
 from src.utils.class_weights import compute_class_weights
-from src.config.paths import RESULTS_DIR
+from src.config.paths import RESULTS_DIR, ARTIFACTS_DATA
 
 # ------------------------------------------------------------------
 # Models
@@ -260,6 +260,30 @@ def run_gnn(cfg: Dict) -> Dict:
     # ==============================================================
     # TRAINING
     # ==============================================================
+
+    # --- Idempotency: skip if checkpoint or results already exist for this exp_id
+    if exp_id:
+        model_name = None
+        # infer model class name
+        if graph_type == "homogeneous":
+            model_name = model.__class__.__name__
+        else:
+            model_name = model.__class__.__name__
+
+        best_ckpt = ARTIFACTS_DATA / dataset / "models" / model_name / exp_id / "best_model.pt"
+        if best_ckpt.exists():
+            logger.info("Checkpoint exists for exp_id=%s at %s — skipping training", exp_id, best_ckpt)
+            results_dir = RESULTS_DIR / dataset / model_name
+            existing = None
+            if results_dir.exists():
+                for p in results_dir.glob("*.json"):
+                    try:
+                        if exp_id in p.read_text():
+                            existing = p
+                            break
+                    except Exception:
+                        continue
+            return {"skipped": True, "exp_id": exp_id, "checkpoint": str(best_ckpt), "results_file": str(existing) if existing is not None else None}
 
     best_model_path = train_model(
         model=model,
