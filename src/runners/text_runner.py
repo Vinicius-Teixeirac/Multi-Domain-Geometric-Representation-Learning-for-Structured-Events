@@ -32,3 +32,4 @@ def ensure_text(
         df = df.rename(columns={"QuadClass": "label"})
 
         df[["text", "label"]].to_parquet(out_path)
+    return {"skipped": False, "dataset": dataset, "split_tag": split_tag}

@@ -33,6 +33,7 @@ def ensure_entities(
 
     if all(p.exists() for p in expected) and not force:
         logger.info("Skipping entity construction (already exists)")
-        return
+        return {"skipped": True, "dataset": dataset, "split_tag": split_tag}
 
     build_event_entities(dataset_name=dataset, split_tag=split_tag)
+    return {"skipped": False, "dataset": dataset, "split_tag": split_tag}

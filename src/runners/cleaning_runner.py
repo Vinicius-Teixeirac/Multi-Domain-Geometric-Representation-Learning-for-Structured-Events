@@ -26,7 +26,7 @@ def ensure_cleaned(
         Path to the cleaned parquet file.
     """
     output_dir = PROCESSED_DATA / sample_name
-    output_path = output_dir / f"processed_{sample_name}"
+    output_path = output_dir / f"processed_{sample_name}.parquet"
 
     if output_path.exists() and not force:
         logger.info(f"Cleaned file already exists, skipping: {output_path}")

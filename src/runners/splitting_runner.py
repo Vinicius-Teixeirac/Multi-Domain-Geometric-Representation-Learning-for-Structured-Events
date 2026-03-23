@@ -41,7 +41,7 @@ def ensure_splits(
 
     if all(p.exists() for p in expected_files) and not force:
         logger.info(f"Splits already exist for sample '{sample_name}', tag='{tag}'. Skipping.")
-        return
+        return {"skipped": True, "sample_name": sample_name, "tag": tag}
 
     logger.info(f"Running splitting for sample '{sample_name}', tag='{tag}'")
 
@@ -55,3 +55,4 @@ def ensure_splits(
         random_state=random_state,
         tag=tag,
     )
+    return {"skipped": False, "sample_name": sample_name, "tag": tag}
