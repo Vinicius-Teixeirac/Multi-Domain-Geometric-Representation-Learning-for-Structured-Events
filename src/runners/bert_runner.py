@@ -17,6 +17,7 @@ from src.testing.evaluate import evaluate_model
 from src.utils.class_weights import compute_class_weights
 from src.config.paths import RESULTS_DIR, ARTIFACTS_DATA
 from src.utils.experiments_logging import get_logger
+from src.utils.idempotency import should_skip
 
 logger = get_logger(__name__)
 
@@ -82,23 +83,12 @@ def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
         dm.train_dataset.labels.cpu().numpy()
     ).to(device)
 
-    # --- Idempotency: skip if checkpoint or results already exist for this exp_id
+    # --- Idempotency: central check
     if exp_id:
-        model_name = model.__class__.__name__
-        best_ckpt = ARTIFACTS_DATA / dataset / "models" / model_name / exp_id / "best_model.pt"
-        if best_ckpt.exists():
-            logger.info("Checkpoint exists for exp_id=%s at %s — skipping training", exp_id, best_ckpt)
-            results_dir = RESULTS_DIR / dataset / model_name
-            existing = None
-            if results_dir.exists():
-                for p in results_dir.glob("*.json"):
-                    try:
-                        if exp_id in p.read_text():
-                            existing = p
-                            break
-                    except Exception:
-                        continue
-            return {"skipped": True, "exp_id": exp_id, "checkpoint": str(best_ckpt), "results_file": str(existing) if existing is not None else None}
+        skip, info = should_skip(exp_id, dataset)
+        if skip:
+            logger.info("Skipping BERT for exp_id=%s — info=%s", exp_id, info)
+            return {"skipped": True, "exp_id": exp_id, **info}
 
     best_model_path = train_model(
         model=model,
