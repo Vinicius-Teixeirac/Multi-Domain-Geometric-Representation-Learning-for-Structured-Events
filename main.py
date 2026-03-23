@@ -4,6 +4,7 @@ import argparse
 import yaml
 import hashlib
 import json
+from typing import List
 
 # ---------------------------------------------------------------------
 # IMPORTANT: importing paths guarantees folder creation (side-effect)
@@ -26,6 +27,7 @@ from src.runners.bert_runner import run_bert
 from src.utils.seed import set_seed
 from src.utils.experiments_logging import get_logger
 from src.utils.loading import load_json
+from src.utils.idempotency import should_skip
 
 # ---------------------------------------------------------------------
 # CAMEO dictionaries (explicit + centralized)
@@ -145,6 +147,12 @@ def parse_args():
         help="List of BERT YAML config files",
     )
 
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print which experiments would run or be skipped, then exit",
+    )
+
     return parser.parse_args()
 
 
@@ -168,6 +176,37 @@ def main():
     mlp_configs = load_configs(args.mlp_configs)
     gnn_configs = load_configs(args.gnn_configs)
     bert_configs = load_configs(args.bert_configs)
+
+    # --------------------------------------------------
+    # Dry-run: report which experiments would be skipped or run
+    # --------------------------------------------------
+    if args.dry_run:
+        print("DRY RUN — listing planned experiments and skip status")
+        for dataset in datasets:
+            for base_cfg in (mlp_configs + gnn_configs + bert_configs):
+                base_tag = (
+                    base_cfg.get("data", {})
+                    .get("split", {})
+                    .get("tag", "default")
+                )
+                split_tag = f"{base_tag}_s{args.seed}"
+
+                cfg = {
+                    **base_cfg,
+                    "dataset": dataset,
+                    "seed": args.seed,
+                    "split_tag": split_tag,
+                }
+
+                exp_id = hash_config(cfg)
+                skip, info = should_skip(exp_id, dataset)
+                kind = base_cfg.get("model", {}).get("kind", "gnn/mlp/bert")
+                cfg_path = base_cfg.get("_config_path", "<unknown>")
+                status = "SKIP" if skip else "RUN"
+                print(f"{status}: dataset={dataset} | cfg={cfg_path} | id={exp_id} | info={info}")
+
+        print("DRY RUN complete. No actions taken.")
+        return
 
     for dataset in datasets:
         logger.info("=" * 80)
