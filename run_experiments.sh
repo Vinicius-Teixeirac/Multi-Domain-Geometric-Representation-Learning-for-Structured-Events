@@ -3,7 +3,7 @@ set -euo pipefail
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-SEEDS=(61 80 33 314)
+SEEDS=(42 61 80 33 314)
 
 MLP_CONFIGS=(
     src/config/model_setup/mlp/mlp.yaml
