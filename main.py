@@ -22,6 +22,7 @@ from src.runners.text_runner import ensure_text
 from src.runners.mlp_runner import run_mlp
 from src.runners.gnn_runner import run_gnn
 from src.runners.bert_runner import run_bert
+from src.runners.multiview_runner import run_multiview
 
 from src.utils.seed import set_seed
 from src.utils.experiments_logging import get_logger
@@ -145,6 +146,14 @@ def parse_args():
         help="List of BERT YAML config files",
     )
 
+    parser.add_argument(
+        "--multiview-configs",
+        type=str,
+        nargs="*",
+        default=[],
+        help="List of multiview geometric model YAML config files",
+    )
+
     return parser.parse_args()
 
 
@@ -165,9 +174,10 @@ def main():
         datasets = all_datasets
     logger.info(f"Datasets to process: {datasets}")
 
-    mlp_configs = load_configs(args.mlp_configs)
-    gnn_configs = load_configs(args.gnn_configs)
-    bert_configs = load_configs(args.bert_configs)
+    mlp_configs       = load_configs(args.mlp_configs)
+    gnn_configs       = load_configs(args.gnn_configs)
+    bert_configs      = load_configs(args.bert_configs)
+    multiview_configs = load_configs(args.multiview_configs)
 
     for dataset in datasets:
         logger.info("=" * 80)
@@ -182,7 +192,7 @@ def main():
         # --------------------------------------------------
         # Stage 2: splits (split-tag aware, seed-namespaced)
         # --------------------------------------------------
-        for base_cfg in (mlp_configs + gnn_configs + bert_configs):
+        for base_cfg in (mlp_configs + gnn_configs + bert_configs + multiview_configs):
             base_tag = (
                 base_cfg.get("data", {})
                 .get("split", {})
@@ -317,6 +327,33 @@ def main():
             logger.info("-" * 60)
 
             run_bert(cfg)
+
+        # --------------------------------------------------
+        # Stage 6d: Multiview Geometric experiments
+        # --------------------------------------------------
+        for base_cfg in multiview_configs:
+            base_tag = (
+                base_cfg.get("data", {})
+                .get("split", {})
+                .get("tag", "default")
+            )
+            split_tag = f"{base_tag}_s{args.seed}"
+
+            logger.info("-" * 60)
+            logger.info(
+                f"[MULTIVIEW] Dataset={dataset} | "
+                f"Split={split_tag} | "
+                f"Config={base_cfg['_config_path']} | "
+                f"Seed={args.seed}"
+            )
+            logger.info("-" * 60)
+
+            run_multiview(
+                cfg=base_cfg,
+                dataset_name=dataset,
+                split_tag=split_tag,
+                seed=args.seed,
+            )
 
     logger.info("All experiments completed successfully.")
 

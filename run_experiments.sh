@@ -30,7 +30,7 @@ for SEED in "${SEEDS[@]}"; do
     echo "SEED: ${SEED}"
     echo "========================================"
 
-    python main.py \
+    uv run python main.py \
         --seed "${SEED}" \
         --mlp-configs  "${MLP_CONFIGS[@]}"  \
         --gnn-configs  "${GNN_CONFIGS[@]}"  \
