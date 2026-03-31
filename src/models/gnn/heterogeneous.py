@@ -196,10 +196,29 @@ class HeterogeneousGNN(nn.Module):
                 (num_nodes, self.hidden_dim)
             ).float()
         else:
-            x_event = self.encoder(
-                event_store.x_cat,
-                event_store.x_num,
-            )
+            # When features were attached as full-length tensors on the
+            # HeteroData object (one tensor per event in the split), the
+            # NeighborLoader / batching will not automatically slice dict
+            # attributes. Ensure we index any full-length tensors by the
+            # sampled node ids (`n_id`) so the encoder always receives
+            # per-batch tensors with matching first-dimension sizes.
+            x_cat = event_store.x_cat
+            x_num = event_store.x_num
+
+            if isinstance(x_cat, dict) and hasattr(event_store, "n_id"):
+                n_id = event_store.n_id
+                # build a sliced dict where needed
+                x_cat = {
+                    k: (v[n_id] if v.size(0) != num_nodes else v)
+                    for k, v in x_cat.items()
+                }
+
+            if x_num is not None and hasattr(event_store, "n_id"):
+                n_id = event_store.n_id
+                if x_num.size(0) != num_nodes:
+                    x_num = x_num[n_id]
+
+            x_event = self.encoder(x_cat, x_num)
 
         x_dict[self.event_type] = x_event
 

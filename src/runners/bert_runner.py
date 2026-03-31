@@ -15,8 +15,9 @@ from src.models.bert.model import BertForQuadClass
 from src.training.train import train_model
 from src.testing.evaluate import evaluate_model
 from src.utils.class_weights import compute_class_weights
-from src.config.paths import RESULTS_DIR
+from src.config.paths import RESULTS_DIR, ARTIFACTS_DATA
 from src.utils.experiments_logging import get_logger
+from src.utils.idempotency import should_skip
 
 logger = get_logger(__name__)
 
@@ -81,6 +82,13 @@ def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
     class_weights = compute_class_weights(
         dm.train_dataset.labels.cpu().numpy()
     ).to(device)
+
+    # --- Idempotency: central check
+    if exp_id:
+        skip, info = should_skip(exp_id, dataset)
+        if skip:
+            logger.info("Skipping BERT for exp_id=%s — info=%s", exp_id, info)
+            return {"skipped": True, "exp_id": exp_id, **info}
 
     best_model_path = train_model(
         model=model,

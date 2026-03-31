@@ -16,6 +16,10 @@ from src.training.train import train_model
 from src.testing.evaluate import evaluate_model
 from src.utils.class_weights import compute_class_weights
 from src.config.paths import ARTIFACTS_DATA, RESULTS_DIR
+from src.utils.experiments_logging import get_logger
+from src.utils.idempotency import should_skip
+
+logger = get_logger(__name__)
 
 
 # -----------------------------------------------------------------------------
@@ -71,6 +75,13 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
     ).to(cfg["training"]["device"])
 
     exp_id = cfg.get("exp_id", "")
+
+    # --- Idempotency: central check
+    if exp_id:
+        skip, info = should_skip(exp_id, cfg["dataset"])
+        if skip:
+            logger.info("Skipping MLP for exp_id=%s — info=%s", exp_id, info)
+            return {"skipped": True, "exp_id": exp_id, **info}
 
     best_model_path = train_model(
         model=model,

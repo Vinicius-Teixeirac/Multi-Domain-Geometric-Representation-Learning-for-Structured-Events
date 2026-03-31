@@ -219,3 +219,7 @@ __marimo__/
 data/
 results/
 logs/
+
+# Keep repository `src/config/data` helpers under version control
+!src/config/data/
+!src/config/data/*.py

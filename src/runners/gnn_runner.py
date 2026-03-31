@@ -12,7 +12,8 @@ from torch.nn.parameter import UninitializedParameter
 from src.training.train import train_model
 from src.testing.evaluate import evaluate_model
 from src.utils.class_weights import compute_class_weights
-from src.config.paths import RESULTS_DIR
+from src.config.paths import RESULTS_DIR, ARTIFACTS_DATA
+from src.utils.idempotency import should_skip
 
 # ------------------------------------------------------------------
 # Models
@@ -260,6 +261,13 @@ def run_gnn(cfg: Dict) -> Dict:
     # ==============================================================
     # TRAINING
     # ==============================================================
+
+    # --- Idempotency: central check
+    if exp_id:
+        skip, info = should_skip(exp_id, dataset)
+        if skip:
+            logger.info("Skipping GNN for exp_id=%s — info=%s", exp_id, info)
+            return {"skipped": True, "exp_id": exp_id, **info}
 
     best_model_path = train_model(
         model=model,

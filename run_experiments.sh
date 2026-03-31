@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 SEEDS=(42 61 80 33 314)
 
 MLP_CONFIGS=(
@@ -26,16 +28,41 @@ BERT_CONFIGS=(
 )
 
 for SEED in "${SEEDS[@]}"; do
+
     echo "========================================"
     echo "SEED: ${SEED}"
     echo "========================================"
 
-    uv run python main.py \
-        --seed "${SEED}" \
-        --mlp-configs  "${MLP_CONFIGS[@]}"  \
-        --gnn-configs  "${GNN_CONFIGS[@]}"  \
-        --bert-configs "${BERT_CONFIGS[@]}"
+    # -------------------------
+    # MLP
+    # -------------------------
+    for CONFIG in "${MLP_CONFIGS[@]}"; do
+        python main.py \
+            --seed "${SEED}" \
+            --config "${CONFIG}" \
+            --model-type mlp
+    done
+
+    # -------------------------
+    # GNN
+    # -------------------------
+    for CONFIG in "${GNN_CONFIGS[@]}"; do
+        python main.py \
+            --seed "${SEED}" \
+            --config "${CONFIG}" \
+            --model-type gnn
+    done
+
+    # -------------------------
+    # BERT
+    # -------------------------
+    for CONFIG in "${BERT_CONFIGS[@]}"; do
+        python main.py \
+            --seed "${SEED}" \
+            --config "${CONFIG}" \
+            --model-type bert
+    done
 
 done
 
-echo "All seeds completed."
+echo "All experiments completed."
