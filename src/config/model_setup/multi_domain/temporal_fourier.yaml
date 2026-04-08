@@ -1,0 +1,44 @@
+# temporal_fourier.yaml
+# Temporal ablation — learnable multi-frequency Fourier feature map
+# Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
+# This file: sage / hyperspherical / fourier / geometry_aware(gated)
+#
+# A learnable frequency matrix W ∈ ℝ^{K×3} captures arbitrary periodicities
+# beyond fixed annual/weekly cycles. The temporal output is Euclidean;
+# geometry_aware fusion log-maps the geo view only.
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: hyperspherical
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: fourier
+    out_dim: 16
+    hidden_dim: 32
+    num_frequencies: 8
+
+  fusion:
+    type: geometry_aware
+    inner_type: gated
+    hidden_dim: 128
+    dropout: 0.2

@@ -1,0 +1,44 @@
+# ablation_geo_sphere_only.yaml
+# Geometry ablation — Riemannian geometry in the geo domain only
+# sage / hyperspherical / product_manifold / geometry_aware(concat_mlp)
+#
+# The geo encoder outputs on S^{out-1}; the temporal encoder is Euclidean.
+# The geometry_aware fusion log-maps the geo view to tangent space before
+# concatenation. Comparing against ablation_temporal_sphere_only.yaml
+# and ablation_no_geometry.yaml decomposes the contribution of each domain's
+# geometric structure independently.
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: hyperspherical
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: product_manifold
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: geometry_aware
+    inner_type: concat_mlp
+    hidden_dim: 128
+    dropout: 0.2

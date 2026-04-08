@@ -107,12 +107,28 @@ def train_model(
                 print(f"Early stopping at epoch {epoch}")
                 break
 
-        print(
+        if val_loader is not None:
+            print(
                 f"Epoch {epoch} | "
                 f"Train loss: {train_loss:.4f} | "
-                f"Val F1 (macro): {val_metric:.4f} | "
+                f"Val {metric}: {val_metric:.4f} | "
                 f"Acc: {metrics['accuracy']:.4f}"
             )
+        else:
+            print(f"Epoch {epoch} | Train loss: {train_loss:.4f}")
+
+    # When there is no validation set, save the final model so evaluate_model can load it.
+    if val_loader is None:
+        torch.save(
+            {
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "epoch": num_epochs,
+                "best_metric": -1.0,
+                "val_metrics": {},
+            },
+            best_model_path,
+        )
 
     print(f"Best validation macro-metric: {best_metric:.4f}")
     return best_model_path

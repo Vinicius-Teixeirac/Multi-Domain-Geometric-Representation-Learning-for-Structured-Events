@@ -1,0 +1,43 @@
+# ablation_no_geometry.yaml
+# Geometry ablation — fully Euclidean, no manifold inductive bias anywhere
+# sage / euclidean / product_manifold / concat_mlp
+#
+# Baseline without any geometric structure: raw (lat, lon) fed to an MLP,
+# sin/cos temporal features fed to an MLP, GNN actor embeddings.
+# All fusion is geometry-blind concatenation. Comparing this against
+# partially/fully Riemannian variants directly measures the value of
+# introducing manifold structure into the event representation.
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: euclidean
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: product_manifold
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: concat_mlp
+    hidden_dim: 128
+    dropout: 0.2

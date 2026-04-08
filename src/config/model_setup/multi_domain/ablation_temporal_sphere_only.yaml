@@ -1,0 +1,43 @@
+# ablation_temporal_sphere_only.yaml
+# Geometry ablation — Riemannian geometry in the temporal domain only
+# sage / euclidean / riemannian_product / geometry_aware(concat_mlp)
+#
+# The temporal encoder outputs on S^{out-1}; the geo encoder is Euclidean.
+# The geometry_aware fusion log-maps the temporal view to tangent space
+# before concatenation. Comparing against ablation_geo_sphere_only.yaml
+# decomposes whether spatial or temporal geometry is more informative.
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: euclidean
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: riemannian_product
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: geometry_aware
+    inner_type: concat_mlp
+    hidden_dim: 128
+    dropout: 0.2

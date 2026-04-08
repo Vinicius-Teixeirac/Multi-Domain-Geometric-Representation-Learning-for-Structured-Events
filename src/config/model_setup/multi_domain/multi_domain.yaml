@@ -1,0 +1,49 @@
+# src/config/model_setup/multi_domain/multi_domain.yaml
+#
+# Configuration for the MultiDomainGeometricModel — default variant.
+#
+# Each domain encoder and the fusion mechanism are independently configurable.
+# Available types:
+#   actor.type    : sage_gnn | gat_gnn | weighted_gnn | attribute_only
+#   geo.type      : hyperspherical (Riemannian) | projected (ablation) | euclidean | region_aware
+#   temporal.type : riemannian_product (Riemannian) | product_manifold | learnable_period | fourier
+#   fusion.type   : concat_mlp | attention | gated
+#                   geometry_aware (+ inner_type: concat_mlp | attention | gated)
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda       # set to 'cpu' if no GPU available
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  # --- Actor domain: WHO/WHOM ---
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16    # embedding dim per actor categorical attribute (8 attrs)
+    hidden_dim: 128       # GNN hidden dimension
+    out_dim: 64           # output dim of the relational view
+    num_layers: 2         # number of message-passing layers
+    dropout: 0.2
+
+  # --- Geo domain: WHERE ---
+  geo:
+    type: hyperspherical
+    out_dim: 32           # lives on S^31
+    hidden_dim: 64
+
+  # --- Temporal domain: WHEN ---
+  temporal:
+    type: product_manifold
+    out_dim: 16           # ℝ × S¹ × S¹ projected to ℝ^16
+    hidden_dim: 32
+
+  # --- Fusion: Ψ ---
+  fusion:
+    type: concat_mlp
+    hidden_dim: 128       # fused_dim = actor_out + geo_out + temporal_out = 112
+    dropout: 0.2

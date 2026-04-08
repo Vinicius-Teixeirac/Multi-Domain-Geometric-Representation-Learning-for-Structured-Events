@@ -1,0 +1,43 @@
+# src/config/model_setup/multi_domain/multi_domain_riemannian.yaml
+#
+# MultiDomainGeometricModel — fully Riemannian variant.
+#
+# Every intermediate representation lives on a hypersphere:
+#   geo      : HypersphericalEncoder — S² → SphericalLinear → S^{out-1}
+#   temporal : RiemannianProductEncoder — S¹×S¹ → SphericalLinear → S^{out-1}
+#   actor    : SAGEConv GNN (actor graph is discrete — GNN is already geometric)
+#   fusion   : gated (sigmoid gates suppress uninformative views per event)
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: hyperspherical     # truly Riemannian: S² → SphericalLinear → S^{out-1}
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: riemannian_product  # truly Riemannian: S¹×S¹ → SphericalLinear → S^{out-1}
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: gated
+    hidden_dim: 128
+    dropout: 0.2

@@ -1,0 +1,43 @@
+# actor_gat.yaml
+# Actor ablation — GAT encoder
+# Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
+# This file: gat_gnn  / hyperspherical / riemannian_product / geometry_aware(gated)
+#
+# Multi-head attention on the actor co-occurrence graph learns which
+# neighbour actors are most relevant per node, vs. SAGE's uniform mean.
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: gat_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+    gat_heads: 4
+
+  geo:
+    type: hyperspherical
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: riemannian_product
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: geometry_aware
+    inner_type: gated
+    hidden_dim: 128
+    dropout: 0.2

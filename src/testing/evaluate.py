@@ -19,7 +19,8 @@ def evaluate_model(
     device: str = "cpu",
     exp_id: str = "",
 ):
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    # weights_only=False because checkpoints include optimizer state dict (non-tensor objects)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
     model.eval()
