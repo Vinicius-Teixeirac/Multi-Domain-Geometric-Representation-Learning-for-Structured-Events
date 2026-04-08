@@ -1,0 +1,44 @@
+# geo_euclidean.yaml
+# Geo ablation — direct MLP on (lat, lon), no sphere structure
+# Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
+# This file: sage / euclidean / riemannian_product / geometry_aware(gated)
+#
+# No sphere inductive bias in the geo encoder. The temporal view is still
+# spherical (riemannian_product), so geometry_aware fusion still applies
+# the log map to the temporal view. Comparing against hyperspherical/projected
+# isolates how much the sphere structure helps in the geo domain.
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: euclidean
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: riemannian_product
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: geometry_aware
+    inner_type: gated
+    hidden_dim: 128
+    dropout: 0.2

@@ -1,0 +1,46 @@
+# src/config/model_setup/multi_domain/multi_domain_gat_attention.yaml
+#
+# MultiDomainGeometricModel — GAT actor encoder + attention fusion.
+#
+# Upgrade rationale:
+#   actor  : multi-head GAT learns which neighbours matter per event, rather
+#             than treating all co-occurring actors equally (SAGE mean aggregation)
+#   fusion : softmax attention dynamically weights the three domains per event,
+#             allowing the model to rely more on geography for natural disasters
+#             and more on actors for diplomatic events
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: gat_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+    gat_heads: 4          # attention heads; concat=False keeps output dim = hidden_dim
+
+  geo:
+    type: hyperspherical
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: product_manifold
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: attention
+    hidden_dim: 128
+    dropout: 0.2
+    attention_dim: 64     # views are projected to this dim before scoring

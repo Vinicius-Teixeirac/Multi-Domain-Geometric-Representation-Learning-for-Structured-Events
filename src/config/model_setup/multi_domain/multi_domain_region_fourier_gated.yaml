@@ -1,0 +1,49 @@
+# src/config/model_setup/multi_domain/multi_domain_region_fourier_gated.yaml
+#
+# MultiDomainGeometricModel — weighted GNN + region-aware geo + Fourier temporal + gated fusion.
+#
+# Upgrade rationale:
+#   actor    : GCN with co-occurrence edge weights gives more influence to
+#              actor pairs that interact frequently in training events
+#   geo      : country/region embedding alongside S² coordinates captures
+#              geopolitical context that pure coordinates cannot express
+#   temporal : learnable multi-frequency Fourier features discover arbitrary
+#              periodicities beyond fixed annual/weekly calendar cycles
+#   fusion   : sigmoid gates suppress uninformative views per event
+#              (e.g. zero-filled coordinates, actors with no graph edges)
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: weighted_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: region_aware
+    out_dim: 32
+    hidden_dim: 64
+    region_embed_dim: 16  # country/region embedding dimension
+
+  temporal:
+    type: fourier
+    out_dim: 16
+    hidden_dim: 32
+    num_frequencies: 8    # K learnable frequency bands; input_to_mlp dim = 3 + 2K = 19
+
+  fusion:
+    type: gated
+    hidden_dim: 128
+    dropout: 0.2

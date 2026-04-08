@@ -1,0 +1,44 @@
+# geo_region_aware.yaml
+# Geo ablation — Riemannian geo encoder augmented with country embedding
+# Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
+# This file: sage / region_aware / riemannian_product / geometry_aware(gated)
+#
+# Combines the Riemannian S² path with a learnable country/region embedding.
+# Captures geopolitical context (country-level conflict patterns) alongside
+# pure coordinate geometry. Output lives on S^{out-1}.
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: region_aware
+    out_dim: 32
+    hidden_dim: 64
+    region_embed_dim: 16
+
+  temporal:
+    type: riemannian_product
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: geometry_aware
+    inner_type: gated
+    hidden_dim: 128
+    dropout: 0.2

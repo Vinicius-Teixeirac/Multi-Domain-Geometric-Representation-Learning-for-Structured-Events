@@ -223,3 +223,22 @@ logs/
 # Keep repository `src/config/data` helpers under version control
 !src/config/data/
 !src/config/data/*.py
+
+# PyTorch model checkpoints (in case any land outside data/)
+*.pt
+*.pth
+
+# ML experiment tracking
+wandb/
+mlruns/
+lightning_logs/
+
+# PDF documents (qual exam, papers, etc.)
+*.pdf
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk

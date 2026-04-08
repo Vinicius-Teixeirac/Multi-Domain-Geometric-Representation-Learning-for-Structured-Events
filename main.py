@@ -16,7 +16,7 @@ from src.runners.text_runner import ensure_text
 from src.runners.mlp_runner import run_mlp
 from src.runners.gnn_runner import run_gnn
 from src.runners.bert_runner import run_bert
-from src.runners.multiview_runner import run_multiview
+from src.runners.multi_domain_runner import run_multi_domain
 
 from src.utils.seed import set_seed
 from src.utils.experiments_logging import get_logger
@@ -31,9 +31,21 @@ CAMEO_DICTIONARIES = {
     "EventCode": cameo_data["EVENT_CODES"],
 }
 
+
 # --------------------------------------------------
 # Helpers
 # --------------------------------------------------
+def load_configs(paths_list: list[str]) -> list[dict]:
+    """Load YAML config files and inject _config_path into each dict."""
+    configs = []
+    for path in (paths_list or []):
+        with open(path) as f:
+            cfg = yaml.safe_load(f)
+        cfg["_config_path"] = path
+        configs.append(cfg)
+    return configs
+
+
 def hash_config(cfg: dict) -> str:
     raw = json.dumps(cfg, sort_keys=True).encode()
     return hashlib.md5(raw).hexdigest()[:8]
@@ -46,8 +58,13 @@ def discover_datasets(raw_root: Path):
     )
 
 
+def _split_tag(base_cfg: dict, seed: int) -> str:
+    base = base_cfg.get("data", {}).get("split", {}).get("tag", "default")
+    return f"{base}_s{seed}"
+
+
 def parse_args():
-    parser = argparse.ArgumentParser("Single experiment runner")
+    parser = argparse.ArgumentParser("GDELT experiment runner")
 
     parser.add_argument("--seed", type=int, default=42)
 
@@ -91,11 +108,11 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--multiview-configs",
+        "--multi-domain-configs",
         type=str,
         nargs="*",
         default=[],
-        help="List of multiview geometric model YAML config files",
+        help="List of multi-domain geometric model YAML config files",
     )
 
     return parser.parse_args()
@@ -118,10 +135,13 @@ def main():
         datasets = all_datasets
     logger.info(f"Datasets to process: {datasets}")
 
-    mlp_configs       = load_configs(args.mlp_configs)
-    gnn_configs       = load_configs(args.gnn_configs)
-    bert_configs      = load_configs(args.bert_configs)
-    multiview_configs = load_configs(args.multiview_configs)
+    mlp_configs          = load_configs(args.mlp_configs)
+    gnn_configs          = load_configs(args.gnn_configs)
+    bert_configs         = load_configs(args.bert_configs)
+    multi_domain_configs = load_configs(args.multi_domain_configs)
+
+    all_configs     = mlp_configs + gnn_configs + bert_configs + multi_domain_configs
+    tabular_configs = mlp_configs + gnn_configs + bert_configs
 
     for dataset in datasets:
 
@@ -132,84 +152,99 @@ def main():
         # --------------------------------------------------
         # Stage 1: cleaning
         # --------------------------------------------------
-        ensure_cleaned(sample_name=dataset, force=args.force, target_cols=['QuadClass'])
+        ensure_cleaned(sample_name=dataset, force=args.force, target_cols=["QuadClass"])
 
         # --------------------------------------------------
-        # Stage 2: splits (split-tag aware, seed-namespaced)
+        # Stage 2: splits  (deduplicated by split_tag)
         # --------------------------------------------------
-        for base_cfg in (mlp_configs + gnn_configs + bert_configs + multiview_configs):
-            base_tag = (
-                base_cfg.get("data", {})
-                .get("split", {})
-                .get("tag", "default")
-            )
-            split_tag = f"{base_tag}_s{args.seed}"
-            ensure_splits(sample_name=dataset, cleaned_filename=f"processed_{dataset}", stratify_by="QuadClass", tag=split_tag, random_state=args.seed, force=args.force)
+        seen_splits: set[str] = set()
+        for base_cfg in all_configs:
+            tag = _split_tag(base_cfg, args.seed)
+            if tag not in seen_splits:
+                ensure_splits(
+                    sample_name=dataset,
+                    cleaned_filename=f"processed_{dataset}",
+                    stratify_by="QuadClass",
+                    tag=tag,
+                    random_state=args.seed,
+                    force=args.force,
+                )
+                seen_splits.add(tag)
 
         # --------------------------------------------------
         # Stage 3–5: entities, tabular features, text
+        #   (MLP / GNN / BERT only — multi-domain reads raw splits)
         # --------------------------------------------------
-        for base_cfg in (mlp_configs + gnn_configs + bert_configs):
-            base_tag = (
-                base_cfg.get("data", {})
-                .get("split", {})
-                .get("tag", "default")
+        seen_tabular: set[str] = set()
+        for base_cfg in tabular_configs:
+            tag = _split_tag(base_cfg, args.seed)
+            if tag not in seen_tabular:
+                ensure_entities(dataset, split_tag=tag, force=args.force)
+                ensure_tabular_features(dataset, split_tag=tag, force=args.force)
+                ensure_text(
+                    dataset,
+                    split_tag=tag,
+                    dictionaries=CAMEO_DICTIONARIES,
+                    force=args.force,
+                )
+                seen_tabular.add(tag)
+
+        # --------------------------------------------------
+        # Stage 6a: MLP experiments
+        # --------------------------------------------------
+        for base_cfg in mlp_configs:
+            tag = _split_tag(base_cfg, args.seed)
+            cfg = {**base_cfg, "dataset": dataset, "seed": args.seed, "split_tag": tag}
+            cfg["exp_id"] = hash_config(cfg)
+            logger.info(
+                f"[MLP] Dataset={dataset} | Split={tag} | "
+                f"Config={base_cfg['_config_path']} | ID={cfg['exp_id']}"
             )
-            split_tag = f"{base_tag}_s{args.seed}"
-
-        ensure_entities(dataset, split_tag=split_tag, force=args.force)
-        ensure_tabular_features(dataset, split_tag=split_tag, force=args.force)
-
-        ensure_text(
-            dataset,
-            split_tag=split_tag,
-            dictionaries=CAMEO_DICTIONARIES,
-            force=args.force,
-        )
-
-        cfg = {
-            **base_cfg,
-            "dataset": dataset,
-            "seed": args.seed,
-            "split_tag": split_tag,
-        }
-
-        exp_id = hash_config(cfg)
-        cfg["exp_id"] = exp_id
-
-        logger.info(f"Running {args.model_type.upper()} | ID={exp_id}")
-
-        if args.model_type == "mlp":
             run_mlp(cfg)
-        elif args.model_type == "gnn":
+
+        # --------------------------------------------------
+        # Stage 6b: GNN experiments
+        # --------------------------------------------------
+        for base_cfg in gnn_configs:
+            tag = _split_tag(base_cfg, args.seed)
+            cfg = {**base_cfg, "dataset": dataset, "seed": args.seed, "split_tag": tag}
+            cfg["exp_id"] = hash_config(cfg)
+            logger.info(
+                f"[GNN] Dataset={dataset} | Split={tag} | "
+                f"Config={base_cfg['_config_path']} | ID={cfg['exp_id']}"
+            )
             run_gnn(cfg)
-        elif args.model_type == "bert":
+
+        # --------------------------------------------------
+        # Stage 6c: BERT experiments
+        # --------------------------------------------------
+        for base_cfg in bert_configs:
+            tag = _split_tag(base_cfg, args.seed)
+            cfg = {**base_cfg, "dataset": dataset, "seed": args.seed, "split_tag": tag}
+            cfg["exp_id"] = hash_config(cfg)
+            logger.info(
+                f"[BERT] Dataset={dataset} | Split={tag} | "
+                f"Config={base_cfg['_config_path']} | ID={cfg['exp_id']}"
+            )
             run_bert(cfg)
 
         # --------------------------------------------------
-        # Stage 6d: Multiview Geometric experiments
+        # Stage 6d: Multi-Domain Geometric experiments
         # --------------------------------------------------
-        for base_cfg in multiview_configs:
-            base_tag = (
-                base_cfg.get("data", {})
-                .get("split", {})
-                .get("tag", "default")
-            )
-            split_tag = f"{base_tag}_s{args.seed}"
-
+        for base_cfg in multi_domain_configs:
+            tag = _split_tag(base_cfg, args.seed)
             logger.info("-" * 60)
             logger.info(
-                f"[MULTIVIEW] Dataset={dataset} | "
-                f"Split={split_tag} | "
+                f"[MULTI-DOMAIN] Dataset={dataset} | "
+                f"Split={tag} | "
                 f"Config={base_cfg['_config_path']} | "
                 f"Seed={args.seed}"
             )
             logger.info("-" * 60)
-
-            run_multiview(
+            run_multi_domain(
                 cfg=base_cfg,
                 dataset_name=dataset,
-                split_tag=split_tag,
+                split_tag=tag,
                 seed=args.seed,
             )
 

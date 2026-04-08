@@ -1,0 +1,42 @@
+# fusion_ga_concat.yaml
+# Fusion ablation — geometry-aware concatenation MLP
+# Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
+# This file: sage / hyperspherical / riemannian_product / geometry_aware(concat_mlp)
+#
+# Geometry-aware: sphere views are log-mapped before concatenation.
+# Simplest geometry-aware fusion — no dynamic view weighting.
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: hyperspherical
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: riemannian_product
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: geometry_aware
+    inner_type: concat_mlp
+    hidden_dim: 128
+    dropout: 0.2

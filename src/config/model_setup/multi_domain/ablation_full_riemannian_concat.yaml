@@ -1,0 +1,44 @@
+# ablation_full_riemannian_concat.yaml
+# Geometry ablation — fully Riemannian encoders, simplest geometry-aware fusion
+# sage / hyperspherical / riemannian_product / geometry_aware(concat_mlp)
+#
+# Both geo and temporal encoders output on hyperspheres. The fusion maps
+# them to tangent space and concatenates (no view-weighting). Comparing
+# against multi_domain_riemannian_aware.yaml (which uses geometry_aware
+# + gated) isolates the contribution of the gating mechanism on top of
+# the Riemannian pre-processing.
+
+training:
+  batch_size: 512
+  epochs: 200
+  patience: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+
+model:
+  actor:
+    type: sage_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+
+  geo:
+    type: hyperspherical
+    out_dim: 32
+    hidden_dim: 64
+
+  temporal:
+    type: riemannian_product
+    out_dim: 16
+    hidden_dim: 32
+
+  fusion:
+    type: geometry_aware
+    inner_type: concat_mlp
+    hidden_dim: 128
+    dropout: 0.2
