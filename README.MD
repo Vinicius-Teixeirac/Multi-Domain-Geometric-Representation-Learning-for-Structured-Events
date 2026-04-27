@@ -43,26 +43,55 @@ preliminary_experiments/
 │   ├── runners/            # Single-responsibility execution scripts
 │   └── utils/              # Logging, Metrics, Seeding
 ├── main.py                 # Primary entry point for all experiments
-└── linux_requirements.txt  # Dependencies
+├── pyproject.toml          # Project dependencies
+└── uv.lock                 # Pinned lockfile
 ```
 
 ## Usage
 
 The framework is orchestrated via `main.py`. You can run specific experimental tracks by passing the corresponding configuration files.
 
-1. `pip install -r linux_requirements.txt` or `pip install -r windows_requirements.txt`
+### Installation
 
-> The pyg-lib low-level library currently does not offer pre-built Windows wheels, which makes windows_requirements trickier. Also, wheels for pyg-lib aren't on PyPI — they're hosted on a separate wheel index (data.pyg.org) with tags that include the PyTorch version and CUDA version. Install PyG dependencies from the correct wheel source:
-
+**Linux (recommended — using [uv](https://docs.astral.sh/uv/)):**
+```bash
+uv sync
 ```
+The `pyproject.toml` and `uv.lock` already point to the correct PyTorch CUDA 12.1 and PyG wheel indices — no extra flags needed.
+
+**Linux (plain pip):**
+```bash
 pip install torch==2.4.1+cu121 torchvision==0.19.1+cu121 \
   --index-url https://download.pytorch.org/whl/cu121
 
 pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv \
   -f https://data.pyg.org/whl/torch-2.4.1+cu121.html
+
+pip install torch-geometric transformers pandas scikit-learn scipy \
+  matplotlib seaborn pyarrow pyyaml tqdm networkx
 ```
 
-or `conda install pyg -c pyg`
+**Windows:**
+
+pyg-lib has no pre-built Windows wheels, so the install must be done in two steps with the matching torch+CUDA wheel index. The Windows-compatible stack uses torch 2.2.x:
+
+```bash
+pip install torch==2.2.2+cu121 torchvision==0.17.2+cu121 torchaudio==2.2.2+cu121 \
+  --index-url https://download.pytorch.org/whl/cu121
+
+pip install torch_scatter torch_sparse torch_cluster torch_spline_conv \
+  -f https://data.pyg.org/whl/torch-2.2.2+cu121.html
+
+pip install torch-geometric transformers pandas scikit-learn scipy \
+  matplotlib seaborn pyarrow pyyaml tqdm networkx
+```
+
+> `pyg-lib` (the low-level C++ kernel library) is skipped on Windows — torch-geometric falls back to pure-Python implementations automatically. All models run correctly without it; some sparse operations will be slower.
+
+**Conda (any platform):**
+```bash
+conda install pyg -c pyg
+```
 
 2. Running Experiments
 
