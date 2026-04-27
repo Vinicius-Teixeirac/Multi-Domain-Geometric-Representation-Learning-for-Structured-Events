@@ -5,7 +5,7 @@ import json
 import torch
 import pandas as pd
 from torch_geometric.data import Data
-from torch_geometric.loader import NeighborLoader, DataLoader
+from torch_geometric.loader import NeighborLoader
 
 from src.representation.graph.homogeneous.builder import (
     HomogeneousEventGraphBuilder,
@@ -194,11 +194,17 @@ def _build_split_loader(
     data.num_nodes = graph["num_nodes"]
 
     if num_neighbors is None:
-        loader = DataLoader(
-            [data],
-            batch_size=1,
-            shuffle=shuffle,
-        )
+        # PyG's DataLoader collates Data into a Batch with batch_size=1
+        # (number of graphs), which conflicts with NeighborLoader's convention
+        # where batch_size = number of seed nodes. Using a plain wrapper avoids
+        # this and keeps forward_batch slicing correct for both modes.
+        class _FullBatchLoader:
+            def __init__(self, d):
+                self.data = d
+            def __iter__(self):
+                yield self.data
+
+        loader = _FullBatchLoader(data)
     else:
         loader = NeighborLoader(
             data,

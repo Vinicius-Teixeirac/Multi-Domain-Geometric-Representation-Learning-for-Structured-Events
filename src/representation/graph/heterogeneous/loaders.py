@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple, Union, Dict
 
 import torch
 import pandas as pd
-from torch_geometric.loader import NeighborLoader, DataLoader
+from torch_geometric.loader import NeighborLoader
 
 from src.representation.graph.heterogeneous.builder import (
     HeterogeneousEventGraphBuilder,
@@ -148,11 +148,13 @@ def _build_split_loader(
     # Loader strategy
     # --------------------------------------------------
     if num_neighbors is None:
-        loader = DataLoader(
-            [data],
-            batch_size=1,
-            shuffle=shuffle,
-        )
+        class _FullBatchLoader:
+            def __init__(self, d):
+                self.data = d
+            def __iter__(self):
+                yield self.data
+
+        loader = _FullBatchLoader(data)
     else:
         input_nodes = ("event", torch.arange(data["event"].num_nodes))
 
