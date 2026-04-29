@@ -2,9 +2,9 @@
 
 This repository contains the experimental framework for a comparative study on **representation learning and inductive biases** using the **GDELT Event Database**.
 
-The study investigates how different deep learning architectures—operating under different data modeling assumptions—perform on the task of predictive event classification (`QuadClass`). By holding the informational content of the data constant while varying its structural representation (Tabular, Graph, Text), I isolate the effect of inductive bias on performance.
+The study investigates how different deep learning architectures (operating under different data modeling assumptions) perform on the task of predictive event classification (`QuadClass`). By holding the informational content of the data constant while varying its structural representation (Tabular, Graph, Text), I isolate the effect of inductive bias on performance.
 
-The baseline experiments motivate a **Multi-Domain Geometric Model** (the proposal), which decomposes events into orthogonal geometric domains—relational, spherical, and circular-temporal—and fuses them in a geometry-aware manner.
+The baseline experiments motivate a **Multi-Domain Geometric Model** (the proposal), which decomposes events into orthogonal geometric domains (relational, spherical, and circular-temporal) and fuses them in a geometry-aware manner.
 
 ## 📂 Repository Structure
 
@@ -53,11 +53,11 @@ The framework is orchestrated via `main.py`. You can run specific experimental t
 
 ### Installation
 
-**Linux (recommended — using [uv](https://docs.astral.sh/uv/)):**
+**Linux (recommended, using [uv](https://docs.astral.sh/uv/)):**
 ```bash
 uv sync
 ```
-The `pyproject.toml` and `uv.lock` already point to the correct PyTorch CUDA 12.1 and PyG wheel indices — no extra flags needed.
+The `pyproject.toml` and `uv.lock` already point to the correct PyTorch CUDA 12.1 and PyG wheel indices, no extra flags needed.
 
 **Linux (plain pip):**
 ```bash
@@ -86,7 +86,7 @@ pip install torch-geometric transformers pandas scikit-learn scipy \
   matplotlib seaborn pyarrow pyyaml tqdm networkx
 ```
 
-> `pyg-lib` (the low-level C++ kernel library) is skipped on Windows — torch-geometric falls back to pure-Python implementations automatically. All models run correctly without it; some sparse operations will be slower.
+> `pyg-lib` (the low-level C++ kernel library) is skipped on Windows; torch-geometric falls back to pure-Python implementations automatically. All models run correctly without it, though some sparse operations will be slower.
 
 **Conda (any platform):**
 ```bash
@@ -162,16 +162,16 @@ I hold the informational content constant across all experiments. No model sees 
 
   * Homogeneous Graph: Nodes are Events. Edges exist if events share attributes (e.g., same Actor, same Location, same Day). This explicitly models co-occurrence.
   
-  * Heterogeneous Graph: A bipartite structure. Events are nodes; Actors, Locations, and Dates are also nodes. Edges represent semantic typed relations (e.g., Event A $\xrightarrow{\text{has\_actor}}$ Actor B).
+  * Heterogeneous Graph: A bipartite structure. Events are nodes; Actors, Locations, and Dates are also nodes. Edges represent semantic typed relations (e.g., Event A $\xrightarrow{\text{has-actor}}$ Actor B).
   
-  Assumption: The class label is heavily influenced by the context—who else is involved, where else this is happening, and what neighbors are doing (homophily).
+  Assumption: The class label is heavily influenced by the context: who else is involved, where else this is happening, and what neighbors are doing (homophily).
 
 - **Text Build (The Linguistic View):** It treat events as semantic narratives. Structure: "Prompt-engineered" natural language sentences generated from raw column values. "[WHO] Senator ... involved with [WHOM] New York ... [WHERE] Russia [WHEN] January 1979"
 
   Assumption: The class label can be inferred from linguistic patterns and semantic compositionality found in pre-trained language models.
 
 ## The Models: A Study in Inductive Bias
-I employ a suite of architectures to test how different inductive biases—the set of assumptions a model makes to predict outputs for unseen inputs—affect representation learning.
+I employ a suite of architectures to test how different inductive biases (the set of assumptions a model makes to predict outputs for unseen inputs) affect representation learning.
 
 1. **MLP (Multi-Layer Perceptron)** Bias: Weak and general (Universal Function Approximator).
   - Mechanism: MLPs assume functions are smooth or hierarchical but lack domain-specific knowledge like locality (CNNs) or sequence (RNNs). Implication: They are powerful when scaled but data-hungry. They must learn structure purely from the dataset statistics rather than relying on built-in architectural assumptions.
@@ -232,7 +232,7 @@ Four encoder variants are available:
 | `sage_gnn` (default) | Mean pooling (SAGEConv) | Uniform neighbourhood influence |
 | `gat_gnn` | Multi-head attention (GATConv) | Selective focus on relevant co-actors |
 | `weighted_gnn` | Degree-normalised weighted sum (GCN) | Frequent co-actors more influential |
-| `attribute_only` | None — pure MLP on attributes | Fully inductive; no graph required |
+| `attribute_only` | None; pure MLP on attributes | Fully inductive; no graph required |
 
 After message passing, the Actor1 and Actor2 embeddings are concatenated and projected via a shared MLP: $\varphi_{\text{who}}(e) \in \mathbb{R}^{d_a}$.
 
@@ -253,7 +253,7 @@ Four encoder variants are available:
 | `hyperspherical` (default) | $S^{d-1}$ | Fully Riemannian: $S^2 \to$ SphericalLinear $\to$ SphereReLU $\to S^{d-1}$ |
 | `region_aware` | $S^{d-1}$ | Riemannian path blended with country embedding in tangent space |
 | `projected` | $S^{d-1}$ | $S^2 \to$ Euclidean MLP $\to$ L2-normalize (ablation baseline) |
-| `euclidean` | $\mathbb{R}^d$ | Plain MLP on (lat, lon) — no spherical bias |
+| `euclidean` | $\mathbb{R}^d$ | Plain MLP on (lat, lon), no spherical bias |
 
 ### Temporal Domain — WHEN
 
@@ -268,7 +268,7 @@ Four encoder variants are available:
 | `fourier` | Learnable frequency matrix $W \in \mathbb{R}^{K \times 3}$; discovers arbitrary periodicities |
 | `riemannian_product` | SphericalLinear on each $S^1$ component; learns a bank of frequencies while maintaining circular topology |
 
-### Fusion — Ψ
+### Fusion: $\Psi$
 
 The fusion module receives $[\varphi_{\text{who}},\, \varphi_{\text{where}},\, \varphi_{\text{when}}]$ and outputs class logits. Four strategies are available:
 
