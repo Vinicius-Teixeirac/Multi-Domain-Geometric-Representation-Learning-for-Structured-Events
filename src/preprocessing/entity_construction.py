@@ -134,7 +134,7 @@ def build_event_entities(
         # Save entities
         # --------------------------------------------------
         df.to_parquet(out_path, index=False)
-        logger.info(f"Saved entities → {out_path}")
+        logger.info(f"Saved entities -> {out_path}")
 
         # --------------------------------------------------
         # Metadata (entity cardinalities)
@@ -147,4 +147,4 @@ def build_event_entities(
         }
 
         pd.Series(metadata).to_json(meta_path, indent=2)
-        logger.info(f"Saved entity metadata → {meta_path}")
+        logger.info(f"Saved entity metadata -> {meta_path}")
