@@ -24,7 +24,7 @@ from src.utils.loading import load_json
 
 logger = get_logger("MAIN")
 
-CAMEO_JSON_PATH = Path("notebooks/cameo_codes.json")
+CAMEO_JSON_PATH = Path(__file__).resolve().parent / "notebooks" / "cameo_codes.json"
 cameo_data = load_json(CAMEO_JSON_PATH)
 
 CAMEO_DICTIONARIES = {
