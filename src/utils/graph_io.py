@@ -9,4 +9,4 @@ def save_graph(graph, path: Path):
 
 
 def load_graph(path: Path):
-    return torch.load(path)
+    return torch.load(path, weights_only=False)
