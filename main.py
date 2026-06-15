@@ -47,7 +47,8 @@ def load_configs(paths_list: list[str]) -> list[dict]:
 
 
 def hash_config(cfg: dict) -> str:
-    raw = json.dumps(cfg, sort_keys=True).encode()
+    hashable = {k: v for k, v in cfg.items() if k != "_config_path"}
+    raw = json.dumps(hashable, sort_keys=True).encode()
     return hashlib.md5(raw).hexdigest()[:8]
 
 
