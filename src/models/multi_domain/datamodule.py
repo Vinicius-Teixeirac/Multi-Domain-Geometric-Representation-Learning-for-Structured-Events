@@ -19,6 +19,7 @@ import pandas as pd
 from torch.utils.data import DataLoader
 
 from src.config.paths import SPLITS_DATA
+from src.utils.constants import NUM_QUAD_CLASSES
 from src.utils.loading import load_parquet
 from src.representation.multi_domain.actor_graph_builder import build_actor_graph
 
@@ -92,7 +93,7 @@ class MultiDomainDataModule:
             f"test_{self.split_tag}.parquet", self.splits_dir
         )
 
-        self.num_classes = int(self.train_df[self.target_col].nunique())
+        self.num_classes = NUM_QUAD_CLASSES
 
         # 2. Build actor co-occurrence graph
         self.actor_graph, self.actor_to_idx, self.actor_cardinalities, _ = \

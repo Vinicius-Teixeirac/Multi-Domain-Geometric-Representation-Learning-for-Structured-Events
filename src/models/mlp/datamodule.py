@@ -9,6 +9,7 @@ from src.config.paths import FEATURES_DATA, ARTIFACTS_DATA
 from src.config.schema.columns_schema import COLUMNS_SCHEMA
 from src.config.schema.encoding_schema import ENCODING_SCHEMA
 from src.representation.tabular.encoding import SafeLabelEncoder, HashEncoder
+from src.utils.constants import NUM_QUAD_CLASSES
 from src.utils.loading import load_parquet
 
 from .dataset import EventDataset
@@ -115,12 +116,7 @@ class EventDataModule:
         self.numeric_dim = len(self.numeric_cols)
 
     def _infer_num_classes(self) -> None:
-        """
-        Infer number of target classes from training data.
-        Assumes target is integer-encoded and zero- or arbitrary-based.
-        """
-        y = self.train_df[self.target_col].to_numpy()
-        self.num_classes = int(pd.unique(y).size)
+        self.num_classes = NUM_QUAD_CLASSES
 
 
     # ------------------------------------------------------------------

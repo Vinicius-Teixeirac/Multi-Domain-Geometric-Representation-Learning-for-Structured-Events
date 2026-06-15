@@ -32,6 +32,7 @@ from src.models.multi_domain.model import MultiDomainGeometricModel
 from src.testing.evaluate import evaluate_model
 from src.training.train import train_model
 from src.utils.class_weights import compute_class_weights
+from src.utils.constants import NUM_QUAD_CLASSES
 from src.utils.experiments_logging import get_logger
 from src.utils.seed import set_seed
 
@@ -110,7 +111,7 @@ def run_multi_domain(
     # 2. Class weights (from training labels)
     # ------------------------------------------------------------------
     train_labels = dm.train_dataset.labels.numpy()
-    class_weights_tensor = compute_class_weights(train_labels).to(device)
+    class_weights_tensor = compute_class_weights(train_labels, num_classes=NUM_QUAD_CLASSES).to(device)
 
     # ------------------------------------------------------------------
     # 3. Model construction

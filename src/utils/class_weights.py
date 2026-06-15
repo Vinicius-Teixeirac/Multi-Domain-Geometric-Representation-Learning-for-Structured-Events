@@ -2,12 +2,12 @@
 import numpy as np
 import torch 
 
-def compute_class_weights(y: np.ndarray) -> torch.Tensor:
+def compute_class_weights(y: np.ndarray, num_classes: int | None = None) -> torch.Tensor:
     """
     Computes inverse-frequency class weights for CrossEntropyLoss.
     Safe against missing classes.
     """
-    counts = np.bincount(y)
+    counts = np.bincount(y, minlength=num_classes or 0)
     counts = counts.astype(np.float32)
 
     # Avoid division by zero

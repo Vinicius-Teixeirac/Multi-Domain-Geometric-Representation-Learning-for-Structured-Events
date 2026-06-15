@@ -12,6 +12,7 @@ from torch.nn.parameter import UninitializedParameter
 from src.training.train import train_model
 from src.testing.evaluate import evaluate_model
 from src.utils.class_weights import compute_class_weights
+from src.utils.constants import NUM_QUAD_CLASSES
 from src.config.paths import RESULTS_DIR, ARTIFACTS_DATA
 from src.utils.idempotency import should_skip
 
@@ -124,7 +125,7 @@ def run_gnn(cfg: Dict) -> Dict:
                 conv_type=cfg["model"]["name"],
                 in_channels=in_channels,
                 hidden_channels=cfg["model"]["hidden_dim"],
-                out_channels=cfg["model"]["num_classes"],
+                out_channels=NUM_QUAD_CLASSES,
                 num_layers=cfg["model"]["num_layers"],
                 dropout=cfg["model"]["dropout"],
                 heads=cfg["model"].get("heads", 1),
@@ -143,7 +144,7 @@ def run_gnn(cfg: Dict) -> Dict:
                 conv_type=cfg["model"]["name"],
                 in_channels=0,
                 hidden_channels=cfg["model"]["hidden_dim"],
-                out_channels=cfg["model"]["num_classes"],
+                out_channels=NUM_QUAD_CLASSES,
                 num_layers=cfg["model"]["num_layers"],
                 dropout=cfg["model"]["dropout"],
                 heads=cfg["model"].get("heads", 1),
@@ -164,7 +165,7 @@ def run_gnn(cfg: Dict) -> Dict:
             )
 
         class_weights = compute_class_weights(
-            data.y.cpu().numpy()
+            data.y.cpu().numpy(), num_classes=NUM_QUAD_CLASSES
         ).to(device)
 
     # ==============================================================
@@ -203,7 +204,7 @@ def run_gnn(cfg: Dict) -> Dict:
                 conv_type=cfg["model"]["name"],
                 in_channels=encoder.output_dim,
                 hidden_channels=cfg["model"]["hidden_dim"],
-                out_channels=cfg["model"]["num_classes"],
+                out_channels=NUM_QUAD_CLASSES,
                 metadata=metadata,
                 num_relations=len(metadata[1]),
                 num_layers=cfg["model"]["num_layers"],
@@ -232,7 +233,7 @@ def run_gnn(cfg: Dict) -> Dict:
                 conv_type=cfg["model"]["name"],
                 in_channels=0,
                 hidden_channels=cfg["model"]["hidden_dim"],
-                out_channels=cfg["model"]["num_classes"],
+                out_channels=NUM_QUAD_CLASSES,
                 metadata=metadata,
                 num_relations=len(metadata[1]),
                 num_layers=cfg["model"]["num_layers"],
@@ -258,7 +259,7 @@ def run_gnn(cfg: Dict) -> Dict:
             )
 
         class_weights = compute_class_weights(
-            data["event"].y.cpu().numpy()
+            data["event"].y.cpu().numpy(), num_classes=NUM_QUAD_CLASSES
         ).to(device)
 
     else:

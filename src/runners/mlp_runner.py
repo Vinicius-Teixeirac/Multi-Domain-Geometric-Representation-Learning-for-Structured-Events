@@ -15,6 +15,7 @@ from src.models.mlp.model import EventMLP
 from src.training.train import train_model
 from src.testing.evaluate import evaluate_model
 from src.utils.class_weights import compute_class_weights
+from src.utils.constants import NUM_QUAD_CLASSES
 from src.config.paths import ARTIFACTS_DATA, RESULTS_DIR
 from src.utils.experiments_logging import get_logger
 from src.utils.idempotency import should_skip
@@ -79,7 +80,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
     # Training
     # ----------------------
     class_weights = compute_class_weights(
-        dm.train_df["QuadClass"].to_numpy()
+        dm.train_df["QuadClass"].to_numpy(), num_classes=NUM_QUAD_CLASSES
     ).to(cfg["training"]["device"])
 
     exp_id = cfg.get("exp_id", "")

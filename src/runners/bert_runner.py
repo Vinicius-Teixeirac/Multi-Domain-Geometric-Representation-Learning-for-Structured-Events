@@ -15,6 +15,7 @@ from src.models.bert.model import BertForQuadClass
 from src.training.train import train_model
 from src.testing.evaluate import evaluate_model
 from src.utils.class_weights import compute_class_weights
+from src.utils.constants import NUM_QUAD_CLASSES
 from src.config.paths import RESULTS_DIR, ARTIFACTS_DATA
 from src.utils.experiments_logging import get_logger
 from src.utils.idempotency import should_skip
@@ -77,7 +78,7 @@ def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
     # MODEL
     # ==============================================================
     model = BertForQuadClass(
-        num_classes=cfg["model"]["num_classes"],
+        num_classes=NUM_QUAD_CLASSES,
         model_name=cfg["model"]["model_name"],
         freeze_until_layer=cfg["model"]["freeze_until_layer"],
     )
@@ -88,7 +89,7 @@ def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
     # TRAINING
     # ==============================================================
     class_weights = compute_class_weights(
-        dm.train_dataset.labels.cpu().numpy()
+        dm.train_dataset.labels.cpu().numpy(), num_classes=NUM_QUAD_CLASSES
     ).to(device)
 
     # --- Idempotency: central check
