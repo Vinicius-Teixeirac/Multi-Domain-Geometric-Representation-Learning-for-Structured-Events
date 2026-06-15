@@ -25,6 +25,10 @@ def ensure_text(
         if out_path.exists() and not force:
             continue
 
+        in_path = in_dir / f"{split}_{split_tag}.parquet"
+        if not in_path.exists():
+            continue
+
         df = load_parquet(f"{split}_{split_tag}.parquet", in_dir)
 
         df = df.copy()
