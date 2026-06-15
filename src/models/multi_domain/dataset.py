@@ -62,16 +62,17 @@ def compute_temporal_features(
     doy = dates.dt.dayofyear.to_numpy(dtype=np.float32)   # 1–366
     dow = dates.dt.dayofweek.to_numpy(dtype=np.float32)   # 0–6
 
+    # Compute stats before filling NaT so artificial zeros don't bias the mean
+    if linear_mean is None:
+        linear_mean = float(np.nanmean(linear_day))
+    if linear_std is None:
+        linear_std = float(np.nanstd(linear_day)) + 1e-8
+
     # Fill NaT with neutral values
     nan_mask = np.isnan(linear_day)
     linear_day[nan_mask] = 0.0
     doy[nan_mask] = 1.0
     dow[nan_mask] = 0.0
-
-    if linear_mean is None:
-        linear_mean = float(np.nanmean(linear_day))
-    if linear_std is None:
-        linear_std = float(np.nanstd(linear_day)) + 1e-8
 
     t_linear = ((linear_day - linear_mean) / linear_std).astype(np.float32)
 
