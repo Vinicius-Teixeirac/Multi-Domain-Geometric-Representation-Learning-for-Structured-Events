@@ -139,7 +139,8 @@ def run_multi_domain(
     # 4. Training  (model.to(device) is called inside train_model)
     # ------------------------------------------------------------------
     logger.info("Training …")
-    exp_id = f"multi_domain_s{seed}"
+    config_stem = Path(cfg.get("_config_path", "unknown")).stem
+    exp_id = f"multi_domain_{dataset_name}_{split_tag}_{config_stem}"
     best_model_path = train_model(
         model=model,
         train_loader=dm.train_dataloader(),
@@ -193,7 +194,7 @@ def run_multi_domain(
             "patience": train_cfg.get("patience", 30),
             "lr": train_cfg.get("lr", 1e-3),
             "weight_decay": train_cfg.get("weight_decay", 1e-4),
-            "monitor_metric": train_cfg.get("metric", "f1_macro"),
+            "monitor_metric": train_cfg.get("monitor_metric", "f1_macro"),
         },
         "architecture": {
             "actor":    model_cfg["actor"],
