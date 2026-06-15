@@ -241,16 +241,21 @@ def make_gnn_loaders(
         seed=seed,
     )
 
-    val_loader = _build_split_loader(
-        dataset_name,
-        "valid",
-        edge_keys,
-        batch_size,
-        num_neighbors,
-        node_feature_policy,
-        shuffle=False,
-        split_tag=split_tag,
-        seed=seed,
+    val_entities_path = ENTITIES_DATA / dataset_name / f"valid_{split_tag}_entities.parquet"
+    val_loader = (
+        _build_split_loader(
+            dataset_name,
+            "valid",
+            edge_keys,
+            batch_size,
+            num_neighbors,
+            node_feature_policy,
+            shuffle=False,
+            split_tag=split_tag,
+            seed=seed,
+        )
+        if val_entities_path.exists()
+        else None
     )
 
     test_loader = _build_split_loader(
