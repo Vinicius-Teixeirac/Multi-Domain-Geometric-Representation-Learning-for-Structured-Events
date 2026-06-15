@@ -102,6 +102,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
         class_weights=class_weights,
         dataset_name=cfg["dataset"],
         patience=cfg["training"]["patience"],
+        lr_patience=cfg["training"].get("lr_patience", None),
         device=cfg["training"]["device"],
         metric=cfg["training"].get("monitor_metric", "f1_macro"),
         exp_id=exp_id,

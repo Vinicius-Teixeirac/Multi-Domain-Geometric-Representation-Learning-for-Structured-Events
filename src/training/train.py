@@ -24,6 +24,7 @@ def train_model(
     class_weights: Optional[torch.Tensor],
     dataset_name: str,
     patience: int = 30,
+    lr_patience: int | None = None,
     device: str = "cpu",
     metric: str = "f1_macro",
     exp_id: str = "",
@@ -33,8 +34,9 @@ def train_model(
     criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
     optimizer = Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
+    effective_lr_patience = lr_patience if lr_patience is not None else max(1, patience // 5)
     scheduler = ReduceLROnPlateau(
-        optimizer, mode="max", patience=2, factor=0.5
+        optimizer, mode="max", patience=effective_lr_patience, factor=0.5
     )
 
     out_dir = ARTIFACTS_DATA / dataset_name / "models" / model.__class__.__name__ / exp_id

@@ -288,6 +288,7 @@ def run_gnn(cfg: Dict) -> Dict:
         class_weights=class_weights,
         dataset_name=dataset,
         patience=cfg["training"]["patience"],
+        lr_patience=cfg["training"].get("lr_patience", None),
         device=device,
         metric=cfg["training"].get("monitor_metric", "f1_macro"),
         exp_id=exp_id,

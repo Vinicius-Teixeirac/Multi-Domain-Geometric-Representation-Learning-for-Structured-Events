@@ -149,6 +149,7 @@ def run_multi_domain(
         lr=train_cfg.get("lr", 1e-3),
         weight_decay=train_cfg.get("weight_decay", 1e-4),
         patience=train_cfg.get("patience", 30),
+        lr_patience=train_cfg.get("lr_patience", None),
         class_weights=class_weights_tensor,
         dataset_name=dataset_name,
         device=device,
