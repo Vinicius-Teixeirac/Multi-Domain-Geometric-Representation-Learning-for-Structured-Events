@@ -1,4 +1,4 @@
-# ablation_full_riemannian_concat.yaml
+# src/config/model_setup/multi_domain/ablation_full_riemannian_concat.yaml
 # Geometry ablation — fully Riemannian encoders, simplest geometry-aware fusion
 # sage / hyperspherical / riemannian_product / geometry_aware(concat_mlp)
 #

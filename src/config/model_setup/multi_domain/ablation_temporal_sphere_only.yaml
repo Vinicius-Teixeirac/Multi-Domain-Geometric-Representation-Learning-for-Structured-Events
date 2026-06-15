@@ -1,4 +1,4 @@
-# ablation_temporal_sphere_only.yaml
+# src/config/model_setup/multi_domain/ablation_temporal_sphere_only.yaml
 # Geometry ablation — Riemannian geometry in the temporal domain only
 # sage / euclidean / riemannian_product / geometry_aware(concat_mlp)
 #

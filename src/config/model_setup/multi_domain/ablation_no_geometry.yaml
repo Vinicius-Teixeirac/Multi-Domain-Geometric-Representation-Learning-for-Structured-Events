@@ -1,4 +1,4 @@
-# ablation_no_geometry.yaml
+# src/config/model_setup/multi_domain/ablation_no_geometry.yaml
 # Geometry ablation — fully Euclidean, no manifold inductive bias anywhere
 # sage / euclidean / product_manifold / concat_mlp
 #

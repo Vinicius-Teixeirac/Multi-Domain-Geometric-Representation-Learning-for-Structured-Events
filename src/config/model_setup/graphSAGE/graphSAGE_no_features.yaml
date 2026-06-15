@@ -1,4 +1,4 @@
-# src/config/model_setup/graphSAGE/graphSAGE_none.yaml
+# src/config/model_setup/graphSAGE/graphSAGE_no_features.yaml
 
 graph:
   type: homogeneous
@@ -15,7 +15,6 @@ model:
   hidden_dim: 64
   num_layers: 3
   dropout: 0.3
-  num_classes: 4
 
 training:
   device: cuda
@@ -24,3 +23,4 @@ training:
   lr: 0.005
   weight_decay: 0.0001
   patience: 30
+  monitor_metric: f1_macro

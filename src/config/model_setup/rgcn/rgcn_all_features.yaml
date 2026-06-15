@@ -1,4 +1,4 @@
-# src/config/model_setup/rgcn/rgcn_all.yaml
+# src/config/model_setup/rgcn/rgcn_all_features.yaml
 
 graph:
   type: heterogeneous
@@ -10,7 +10,6 @@ model:
   hidden_dim: 32
   num_layers: 2
   dropout: 0.3
-  num_classes: 4
 
 training:
   device: cuda
@@ -19,3 +18,4 @@ training:
   lr: 0.005
   weight_decay: 0.0001
   patience: 50
+  monitor_metric: f1_macro
