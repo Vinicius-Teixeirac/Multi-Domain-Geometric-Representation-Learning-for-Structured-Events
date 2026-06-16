@@ -121,8 +121,6 @@ def _build_split_loader(
 
     data = builder.build()
 
-    graph = builder.build()
-
     path = (
         GRAPHS_DATA
         / dataset_name
@@ -131,7 +129,7 @@ def _build_split_loader(
         / f"{split}.pt"
     )
 
-    save_graph(graph, path)
+    save_graph(data, path)
 
     # --------------------------------------------------
     # Node features (event-only)
