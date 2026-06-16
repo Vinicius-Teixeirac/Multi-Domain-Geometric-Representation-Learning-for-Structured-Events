@@ -1,5 +1,5 @@
 # fusion_attention.yaml
-# Fusion ablation — geometry-blind softmax attention
+# Fusion ablation - geometry-blind softmax attention
 # Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
 # This file: sage / hyperspherical / riemannian_product / attention
 #

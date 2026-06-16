@@ -8,9 +8,9 @@ that are cheap to compute and numerically stable.
 
 Log map at the north pole
 -------------------------
-For x ∈ S^{d-1} with last coordinate cos θ = x_{-1}:
+For x in S^{d-1} with last coordinate cos theta = x_{-1}:
 
-    log_p(x) = θ/sin(θ) · [x_{:-1}, 0]
+    log_p(x) = theta/sin(theta) * [x_{:-1}, 0]
 
 Since the last component of any tangent vector at p is 0 by definition
 (T_p S^{d-1} = {v : v_d = 0}), it is stored explicitly as 0 and dropped
@@ -18,16 +18,16 @@ when operating in tangent-space coordinates.
 
 Exp map at the north pole
 -------------------------
-For v ∈ T_p S^{d-1} with v_{-1} = 0:
+For v in T_p S^{d-1} with v_{-1} = 0:
 
-    exp_p(v) = [sin(||v||)/||v|| · v_{:-1}, cos(||v||)]
+    exp_p(v) = [sin(||v||)/||v|| * v_{:-1}, cos(||v||)]
 
 SphericalLinear
 ---------------
-Maps S^{in-1} → S^{out-1} intrinsically:
-  1. log_p(x)    → tangent coords  v ∈ ℝ^{in-1}   (last coord dropped)
-  2. W·v + b     → tangent coords  u ∈ ℝ^{out-1}   W ∈ ℝ^{(out-1)×(in-1)}
-  3. exp_q(u)    → output point    y ∈ S^{out-1}   (zero re-appended)
+Maps S^{in-1} -> S^{out-1} intrinsically:
+  1. log_p(x)    -> tangent coords  v in R^{in-1}   (last coord dropped)
+  2. W*v + b     -> tangent coords  u in R^{out-1}   W in R^{(out-1)x(in-1)}
+  3. exp_q(u)    -> output point    y in S^{out-1}   (zero re-appended)
 
 SphereReLU
 ----------
@@ -57,10 +57,10 @@ def log_north(x: torch.Tensor) -> torch.Tensor:
     Returns:
         (*, d) tangent vectors at p  [last coord = 0]
     """
-    inner  = x[..., -1:].clamp(-1 + 1e-7, 1 - 1e-7)           # (*, 1) = cos θ
-    u_body = x[..., :-1]                                         # (*, d-1) = sin θ · direction
-    u_norm = u_body.norm(dim=-1, keepdim=True).clamp_min(1e-7)  # (*, 1) = |sin θ|
-    angle  = torch.acos(inner)                                   # (*, 1) = θ
+    inner  = x[..., -1:].clamp(-1 + 1e-7, 1 - 1e-7)           # (*, 1) = cos theta
+    u_body = x[..., :-1]                                         # (*, d-1) = sin theta * direction
+    u_norm = u_body.norm(dim=-1, keepdim=True).clamp_min(1e-7)  # (*, 1) = |sin theta|
+    angle  = torch.acos(inner)                                   # (*, 1) = theta
     return torch.cat([
         angle / u_norm * u_body,
         torch.zeros_like(x[..., -1:]),
@@ -90,15 +90,15 @@ def exp_north(v: torch.Tensor) -> torch.Tensor:
 
 class SphericalLinear(nn.Module):
     """
-    Linear layer that maps S^{in_dim-1} → S^{out_dim-1} intrinsically.
+    Linear layer that maps S^{in_dim-1} -> S^{out_dim-1} intrinsically.
 
     Every input and output lies on a hypersphere.
 
     Algorithm
     ---------
-    1. log at source north pole → tangent coords v ∈ ℝ^{in-1}
-    2. W·v + b  (W ∈ ℝ^{(out-1)×(in-1)}, b ∈ ℝ^{out-1})
-    3. exp at target north pole → point on S^{out-1}
+    1. log at source north pole -> tangent coords v in R^{in-1}
+    2. W*v + b  (W in R^{(out-1)x(in-1)}, b in R^{out-1})
+    3. exp at target north pole -> point on S^{out-1}
 
     Initialisation: semi-orthogonal W (preserves tangent-vector norms
     on average, stabilising early-training gradient flow).

@@ -1,5 +1,5 @@
 # geo_euclidean.yaml
-# Geo ablation — direct MLP on (lat, lon), no sphere structure
+# Geo ablation - direct MLP on (lat, lon), no sphere structure
 # Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
 # This file: sage / euclidean / riemannian_product / geometry_aware(gated)
 #

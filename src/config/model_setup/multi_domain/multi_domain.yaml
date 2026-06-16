@@ -1,6 +1,6 @@
 # src/config/model_setup/multi_domain/multi_domain.yaml
 #
-# Configuration for the MultiDomainGeometricModel — default variant.
+# Configuration for the MultiDomainGeometricModel - default variant.
 #
 # Each domain encoder and the fusion mechanism are independently configurable.
 # Available types:
@@ -39,10 +39,10 @@ model:
   # --- Temporal domain: WHEN ---
   temporal:
     type: product_manifold
-    out_dim: 16           # ℝ × S¹ × S¹ projected to ℝ^16
+    out_dim: 16           # R x S^1 x S^1 projected to R^16
     hidden_dim: 32
 
-  # --- Fusion: Ψ ---
+  # --- Fusion: Psi ---
   fusion:
     type: concat_mlp
     hidden_dim: 128       # fused_dim = actor_out + geo_out + temporal_out = 112

@@ -1,5 +1,5 @@
 # temporal_learnable_period.yaml
-# Temporal ablation — product manifold with learnable cycle periods
+# Temporal ablation - product manifold with learnable cycle periods
 # Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
 # This file: sage / hyperspherical / learnable_period / geometry_aware(gated)
 #

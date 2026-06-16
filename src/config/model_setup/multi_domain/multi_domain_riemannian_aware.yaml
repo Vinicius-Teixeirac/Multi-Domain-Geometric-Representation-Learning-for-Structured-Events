@@ -1,18 +1,18 @@
 # src/config/model_setup/multi_domain/multi_domain_riemannian_aware.yaml
 #
-# MultiDomainGeometricModel — fully Riemannian encoders + geometry-aware fusion.
+# MultiDomainGeometricModel - fully Riemannian encoders + geometry-aware fusion.
 #
 # All three domain encoders impose manifold structure, and the fusion is
 # geometry-aware: sphere views are log-mapped to their tangent space before
 # the inner fusion strategy operates on them.
 #
-#   geo      : HypersphericalEncoder       → S^{out-1}
-#   temporal : RiemannianProductEncoder    → S^{out-1}
-#   actor    : SAGEConv GNN                → ℝ^{out}  (Euclidean)
+#   geo      : HypersphericalEncoder       -> S^{out-1}
+#   temporal : RiemannianProductEncoder    -> S^{out-1}
+#   actor    : SAGEConv GNN                -> R^{out}  (Euclidean)
 #
 # Fusion:
 #   geometry_aware wraps gated fusion.
-#   Before gating, sphere views are mapped via log_north → ℝ^{d-1}.
+#   Before gating, sphere views are mapped via log_north -> R^{d-1}.
 #   The gate and value projections operate in the common tangent space.
 
 training:

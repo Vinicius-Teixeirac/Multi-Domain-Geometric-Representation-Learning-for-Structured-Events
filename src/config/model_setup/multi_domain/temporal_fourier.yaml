@@ -1,9 +1,9 @@
 # temporal_fourier.yaml
-# Temporal ablation — learnable multi-frequency Fourier feature map
+# Temporal ablation - learnable multi-frequency Fourier feature map
 # Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
 # This file: sage / hyperspherical / fourier / geometry_aware(gated)
 #
-# A learnable frequency matrix W ∈ ℝ^{K×3} captures arbitrary periodicities
+# A learnable frequency matrix W in R^{Kx3} captures arbitrary periodicities
 # beyond fixed annual/weekly cycles. The temporal output is Euclidean;
 # geometry_aware fusion log-maps the geo view only.
 

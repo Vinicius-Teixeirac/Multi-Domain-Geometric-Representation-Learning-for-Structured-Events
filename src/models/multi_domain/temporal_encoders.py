@@ -3,19 +3,19 @@
 Temporal domain encoders for the multi-domain geometric model.
 
 All encoders receive a (B, 3) float32 tensor from the dataset:
-  [0] t_linear  — normalised linear day index  (z-scored on training split)
-  [1] doy       — day-of-year  (1 – 366, float)
-  [2] dow       — day-of-week  (0 – 6,   float; Mon = 0)
+  [0] t_linear  - normalised linear day index  (z-scored on training split)
+  [1] doy       - day-of-year  (1 - 366, float)
+  [2] dow       - day-of-week  (0 - 6,   float; Mon = 0)
 
 Encoders are responsible for all further transformations (sin/cos, Fourier).
 This decoupling lets each variant impose a different temporal geometry without
 touching the dataset or DataLoader.
 
 Available types (set via model.temporal.type in YAML):
-  product_manifold    — fixed periods ℝ × S¹(365) × S¹(7) + Euclidean MLP
-  learnable_period    — same structure with learnable cycle periods
-  fourier             — learnable multi-frequency Fourier feature map + MLP
-  riemannian_product  — truly manifold-aware: S¹ components processed via
+  product_manifold    - fixed periods R x S^1(365) x S^1(7) + Euclidean MLP
+  learnable_period    - same structure with learnable cycle periods
+  fourier             - learnable multi-frequency Fourier feature map + MLP
+  riemannian_product  - truly manifold-aware: S^1 components processed via
                         SphericalLinear; output lives on S^{out-1}
 """
 
@@ -33,10 +33,10 @@ from .riemannian import SphericalLinear, log_north, exp_north
 
 class ProductManifoldEncoder(nn.Module):
     """
-    Fixed-period product manifold encoder: ℝ × S¹(365) × S¹(7).
+    Fixed-period product manifold encoder: R x S^1(365) x S^1(7).
 
     Computes the 5-dim encoding:
-      [t_linear, sin(2π·doy/365), cos(2π·doy/365), sin(2π·dow/7), cos(2π·dow/7)]
+      [t_linear, sin(2pi*doy/365), cos(2pi*doy/365), sin(2pi*dow/7), cos(2pi*dow/7)]
     then projects to out_dim via a learnable MLP.
 
     Behaviourally equivalent to the original TemporalProductEncoder;
@@ -77,7 +77,7 @@ class LearnablePeriodEncoder(nn.Module):
     strictly positive throughout training.
 
     This lets the model discover dominant periodicities that differ from
-    calendar cycles — e.g. political election cycles, seasonal conflict
+    calendar cycles - e.g. political election cycles, seasonal conflict
     patterns specific to the GDELT event distribution.
     """
 
@@ -114,13 +114,13 @@ class FourierEncoder(nn.Module):
     """
     Learnable multi-frequency Fourier temporal encoder.
 
-    A learnable frequency matrix W ∈ ℝ^{K×3} maps the 3-dim raw time
+    A learnable frequency matrix W in R^{Kx3} maps the 3-dim raw time
     vector to K frequency projections. sin and cos of each projection
     produce 2K Fourier features capable of capturing arbitrary periodicities
     beyond fixed annual/weekly cycles.
 
     The original 3 raw features are preserved via concatenation:
-      input_to_mlp = [time_features (3), sin(W·t) (K), cos(W·t) (K)]
+      input_to_mlp = [time_features (3), sin(W*t) (K), cos(W*t) (K)]
     total input dim = 3 + 2K.
     """
 
@@ -145,40 +145,40 @@ class FourierEncoder(nn.Module):
 
 class RiemannianProductEncoder(nn.Module):
     """
-    Truly manifold-aware product temporal encoder: ℝ × S¹ × S¹ → S^{out-1}.
+    Truly manifold-aware product temporal encoder: R x S^1 x S^1 -> S^{out-1}.
 
-    Each circular component (annual, weekly cycle) is embedded on S¹ and
-    processed by a SphericalLinear layer — a learnable multi-frequency
+    Each circular component (annual, weekly cycle) is embedded on S^1 and
+    processed by a SphericalLinear layer - a learnable multi-frequency
     mapping that stays intrinsic to the circle.  The linear time component
     is embedded in Euclidean space.  All components are blended in the
     tangent space of the output hypersphere.
 
-    Concretely, SphericalLinear(2, d) applied to (sin θ, cos θ) ∈ S¹ is
-    equivalent to learning a bank of (d-1) independent frequencies for θ,
-    then mapping the result onto S^{d-1} via the exp map — a strictly
+    Concretely, SphericalLinear(2, d) applied to (sin theta, cos theta) in S^1 is
+    equivalent to learning a bank of (d-1) independent frequencies for theta,
+    then mapping the result onto S^{d-1} via the exp map - a strictly
     more expressive and geometrically principled replacement for the fixed
     sin/cos + MLP pattern in ProductManifoldEncoder.
 
     Architecture
     ------------
-    doy  →  (sin, cos) ∈ S¹  →  SphericalLinear(2, hidden_dim)  →  S^{hidden-1}
-    dow  →  (sin, cos) ∈ S¹  →  SphericalLinear(2, hidden_dim)  →  S^{hidden-1}
-    t_linear  →  Linear(1, hidden_dim//4)  →  ℝ^{t_dim}
+    doy  ->  (sin, cos) in S^1  ->  SphericalLinear(2, hidden_dim)  ->  S^{hidden-1}
+    dow  ->  (sin, cos) in S^1  ->  SphericalLinear(2, hidden_dim)  ->  S^{hidden-1}
+    t_linear  ->  Linear(1, hidden_dim//4)  ->  R^{t_dim}
 
-    log_north(z_ann)[..., :-1]   ∈ ℝ^{hidden-1}   (tangent coords)
-    log_north(z_wk) [..., :-1]   ∈ ℝ^{hidden-1}
-    z_t                          ∈ ℝ^{t_dim}
+    log_north(z_ann)[..., :-1]   in R^{hidden-1}   (tangent coords)
+    log_north(z_wk) [..., :-1]   in R^{hidden-1}
+    z_t                          in R^{t_dim}
 
-    → Linear(2·(hidden-1) + t_dim, out-1)
-    → exp_north  →  S^{out-1}
+    -> Linear(2*(hidden-1) + t_dim, out-1)
+    -> exp_north  ->  S^{out-1}
     """
 
     def __init__(self, out_dim: int = 16, hidden_dim: int = 32):
         super().__init__()
         t_dim = max(hidden_dim // 4, 1)
-        self.annual_layer = SphericalLinear(2, hidden_dim)      # S¹ → S^{hidden-1}
-        self.weekly_layer = SphericalLinear(2, hidden_dim)      # S¹ → S^{hidden-1}
-        self.t_embed      = nn.Linear(1, t_dim)                 # t  → ℝ^{t_dim}
+        self.annual_layer = SphericalLinear(2, hidden_dim)      # S^1 -> S^{hidden-1}
+        self.weekly_layer = SphericalLinear(2, hidden_dim)      # S^1 -> S^{hidden-1}
+        self.t_embed      = nn.Linear(1, t_dim)                 # t  -> R^{t_dim}
         blend_in = 2 * (hidden_dim - 1) + t_dim
         self.blend = nn.Linear(blend_in, out_dim - 1)
 
@@ -187,7 +187,7 @@ class RiemannianProductEncoder(nn.Module):
         doy = time_features[:, 1:2]   # (B, 1)
         dow = time_features[:, 2:3]   # (B, 1)
 
-        # Embed circular inputs on S¹ ⊂ ℝ²
+        # Embed circular inputs on S^1 subset of  R^2
         s1_ann = torch.cat([
             torch.sin(2 * torch.pi * doy / 365.0),
             torch.cos(2 * torch.pi * doy / 365.0),
@@ -197,7 +197,7 @@ class RiemannianProductEncoder(nn.Module):
             torch.cos(2 * torch.pi * dow / 7.0),
         ], dim=-1)                                              # (B, 2)
 
-        # SphericalLinear: each S¹ → S^{hidden-1}
+        # SphericalLinear: each S^1 -> S^{hidden-1}
         z_ann = self.annual_layer(s1_ann)                       # (B, hidden_dim)
         z_wk  = self.weekly_layer(s1_wk)                       # (B, hidden_dim)
 

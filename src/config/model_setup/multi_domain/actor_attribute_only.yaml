@@ -1,5 +1,5 @@
 # actor_attribute_only.yaml
-# Actor ablation — no message passing, attribute embeddings only
+# Actor ablation - no message passing, attribute embeddings only
 # Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
 # This file: attribute_only / hyperspherical / riemannian_product / geometry_aware(gated)
 #

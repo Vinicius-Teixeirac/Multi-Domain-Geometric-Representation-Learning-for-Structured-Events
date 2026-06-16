@@ -1,5 +1,5 @@
 # src/config/model_setup/multi_domain/ablation_geo_sphere_only.yaml
-# Geometry ablation — Riemannian geometry in the geo domain only
+# Geometry ablation - Riemannian geometry in the geo domain only
 # sage / hyperspherical / product_manifold / geometry_aware(concat_mlp)
 #
 # The geo encoder outputs on S^{out-1}; the temporal encoder is Euclidean.

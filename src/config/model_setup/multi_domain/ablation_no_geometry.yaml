@@ -1,5 +1,5 @@
 # src/config/model_setup/multi_domain/ablation_no_geometry.yaml
-# Geometry ablation — fully Euclidean, no manifold inductive bias anywhere
+# Geometry ablation - fully Euclidean, no manifold inductive bias anywhere
 # sage / euclidean / product_manifold / concat_mlp
 #
 # Baseline without any geometric structure: raw (lat, lon) fed to an MLP,

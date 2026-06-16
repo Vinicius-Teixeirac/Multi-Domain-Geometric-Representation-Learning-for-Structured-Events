@@ -1,5 +1,5 @@
 # geo_projected.yaml
-# Geo ablation — projected encoder (S² → Euclidean MLP → L2-normalise)
+# Geo ablation - projected encoder (S^2 -> Euclidean MLP -> L2-normalise)
 # Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
 # This file: sage / projected / riemannian_product / geometry_aware(gated)
 #

@@ -4,15 +4,15 @@ MultiDomainEventDataset
 
 Converts a cleaned GDELT split DataFrame into per-domain tensors:
 
-  Relational (WHO/WHOM) : actor1_idx, actor2_idx  — node indices in actor graph
-  Spatial    (WHERE)    : geo                      — (lat, lon) in degrees
-                          geo_country_idx          — label-encoded country code
-  Temporal   (WHEN)     : time_features            — 3-dim raw temporal features
+  Relational (WHO/WHOM) : actor1_idx, actor2_idx  - node indices in actor graph
+  Spatial    (WHERE)    : geo                      - (lat, lon) in degrees
+                          geo_country_idx          - label-encoded country code
+  Temporal   (WHEN)     : time_features            - 3-dim raw temporal features
 
-Temporal feature layout (3-dim) — encoders handle all further transformations:
-  [0] t_linear  = (days_since_epoch − μ) / σ     (normalised linear component)
-  [1] doy       = day-of-year  (1 – 366, float)
-  [2] dow       = day-of-week  (0 – 6,   float; Mon = 0)
+Temporal feature layout (3-dim) - encoders handle all further transformations:
+  [0] t_linear  = (days_since_epoch - mu) / sigma     (normalised linear component)
+  [1] doy       = day-of-year  (1 - 366, float)
+  [2] dow       = day-of-week  (0 - 6,   float; Mon = 0)
 
 Keeping sin/cos computation out of the dataset allows different temporal
 encoders (fixed periods, learnable periods, Fourier) to transform the raw
@@ -59,8 +59,8 @@ def compute_temporal_features(
     dates = pd.to_datetime(day_series.astype(str), format="%Y%m%d", errors="coerce")
 
     linear_day = (dates - _REFERENCE_DATE).dt.days.to_numpy(dtype=np.float32)
-    doy = dates.dt.dayofyear.to_numpy(dtype=np.float32)   # 1–366
-    dow = dates.dt.dayofweek.to_numpy(dtype=np.float32)   # 0–6
+    doy = dates.dt.dayofyear.to_numpy(dtype=np.float32)   # 1-366
+    dow = dates.dt.dayofweek.to_numpy(dtype=np.float32)   # 0-6
 
     # Compute stats before filling NaT so artificial zeros don't bias the mean
     if linear_mean is None:
@@ -87,9 +87,9 @@ class MultiDomainEventDataset(Dataset):
     Parameters
     ----------
     df : cleaned split DataFrame (from SPLITS_DATA parquets)
-    actor_to_idx : dict mapping actor string IDs → node indices in actor graph.
+    actor_to_idx : dict mapping actor string IDs -> node indices in actor graph.
         Actors not found are mapped to 0 (unknown slot).
-    country_to_idx : dict mapping country code strings → int indices.
+    country_to_idx : dict mapping country code strings -> int indices.
         Pass None to default all country indices to 0 (region-aware encoder
         falls back to zero embedding, other encoders ignore this field).
     time_mean, time_std : normalisation statistics for the linear temporal component.

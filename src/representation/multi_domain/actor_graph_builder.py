@@ -94,12 +94,12 @@ def build_actor_graph(
     Returns
     -------
     graph : PyG Data
-        x          : (N_actors, 8)  — int64 label-encoded actor attributes
-        edge_index : (2, E)         — undirected co-occurrence edges
-        edge_attr  : (E,)           — normalised co-occurrence counts in (0, 1]
+        x          : (N_actors, 8)  - int64 label-encoded actor attributes
+        edge_index : (2, E)         - undirected co-occurrence edges
+        edge_attr  : (E,)           - normalised co-occurrence counts in (0, 1]
         num_nodes  : N_actors
     actor_to_idx : dict[str, int]
-        Maps actor string ID → node index. "__unknown__" → 0.
+        Maps actor string ID -> node index. "__unknown__" -> 0.
         Actors not present in training map to 0 at inference time.
     cardinalities : list[int]
         Per-feature cardinality including +1 for the "unknown" slot.
@@ -170,7 +170,7 @@ def build_actor_graph(
     # ------------------------------------------------------------------
     # 4. Build edges from training data only  (undirected, with weights)
     # ------------------------------------------------------------------
-    # Reuse actor ID arrays already computed in step 1 — no need to recompute.
+    # Reuse actor ID arrays already computed in step 1 - no need to recompute.
     a1_idx_arr = (
         pd.Series(a1_ids_full).map(actor_to_idx).fillna(0).astype(np.int64).values
     )

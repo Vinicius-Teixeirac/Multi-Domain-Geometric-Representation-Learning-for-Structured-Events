@@ -1,5 +1,5 @@
 # temporal_product_manifold.yaml
-# Temporal ablation — Euclidean MLP on fixed-period product manifold features
+# Temporal ablation - Euclidean MLP on fixed-period product manifold features
 # Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
 # This file: sage / hyperspherical / product_manifold / geometry_aware(gated)
 #

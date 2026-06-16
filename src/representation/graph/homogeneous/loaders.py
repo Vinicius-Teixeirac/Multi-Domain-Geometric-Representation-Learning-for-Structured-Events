@@ -60,7 +60,7 @@ def _build_node_features(
     """
 
     # --------------------------------------------------
-    # Featureless mode → constant dummy features
+    # Featureless mode -> constant dummy features
     # --------------------------------------------------
     if policy == "none":
         return torch.ones((num_nodes, 1), dtype=torch.float)

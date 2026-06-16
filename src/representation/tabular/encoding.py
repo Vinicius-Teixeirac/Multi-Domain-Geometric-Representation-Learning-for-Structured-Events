@@ -213,7 +213,7 @@ class HashedOneHotEncoder:
             dtype=self.dtype,
             count=n_samples,
         )
-        logger.debug(f"Applying HashedOneHotEncoder to column '{series.name}' (output shape: {n_samples} × {self.num_buckets})")
+        logger.debug(f"Applying HashedOneHotEncoder to column '{series.name}' (output shape: {n_samples} x {self.num_buckets})")
         return sparse.csr_matrix(
             (data, (rows, cols)),
             shape=(n_samples, self.num_buckets),

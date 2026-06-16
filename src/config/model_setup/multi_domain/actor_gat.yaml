@@ -1,5 +1,5 @@
 # actor_gat.yaml
-# Actor ablation — GAT encoder
+# Actor ablation - GAT encoder
 # Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
 # This file: gat_gnn  / hyperspherical / riemannian_product / geometry_aware(gated)
 #

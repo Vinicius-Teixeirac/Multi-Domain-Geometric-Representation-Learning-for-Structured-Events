@@ -6,7 +6,7 @@ Orchestrates data loading and pre-processing for the MultiDomainGeometricModel:
 
   1. Load cleaned split parquets from SPLITS_DATA (raw columns).
   2. Build the actor co-occurrence graph (train edges only, all-split actor nodes).
-  3. Build country → index mapping for the geo encoder (region_aware type).
+  3. Build country -> index mapping for the geo encoder (region_aware type).
   4. Wrap each split in a MultiDomainEventDataset.
   5. Expose DataLoaders, the actor graph, and cardinalities for model initialisation.
 """
@@ -99,7 +99,7 @@ class MultiDomainDataModule:
         self.actor_graph, self.actor_to_idx, self.actor_cardinalities, _ = \
             build_actor_graph(self.train_df)
 
-        # 3. Build country → index mapping (index 0 = unknown/missing)
+        # 3. Build country -> index mapping (index 0 = unknown/missing)
         all_dfs = (
             [self.train_df]
             + ([] if self.valid_df is None else [self.valid_df])

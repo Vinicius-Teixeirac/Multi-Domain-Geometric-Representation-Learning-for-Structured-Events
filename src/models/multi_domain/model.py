@@ -5,21 +5,21 @@ MultiDomainGeometricModel
 Implements the composite event representation framework proposed in Chapter 4
 of the qualification exam:
 
-    φ(e) = Ψ(φ_who, φ_when, φ_where)
+    phi(e) = Psi(phi_who, phi_when, phi_where)
 
-All architectural choices — encoder type, hyperparameters, and fusion mechanism —
+All architectural choices - encoder type, hyperparameters, and fusion mechanism -
 are driven by a YAML config dict, enabling systematic comparison of geometric
 inductive biases without code changes.
 
 Component domains
 -----------------
-  WHO/WHOM  → actor encoder    (see actor_encoders.py)
-  WHERE     → geo encoder      (see geo_encoders.py)
-  WHEN      → temporal encoder (see temporal_encoders.py)
+  WHO/WHOM  -> actor encoder    (see actor_encoders.py)
+  WHERE     -> geo encoder      (see geo_encoders.py)
+  WHEN      -> temporal encoder (see temporal_encoders.py)
 
 Fusion
 ------
-  Ψ         → fusion mechanism (see fusion.py)
+  Psi         -> fusion mechanism (see fusion.py)
 """
 
 from __future__ import annotations
@@ -90,7 +90,7 @@ class MultiDomainGeometricModel(nn.Module):
 
         self.fusion = build_fusion(fusion_cfg, view_dims, num_classes, view_manifolds)
 
-        # --- Actor graph (registered as buffers → moved by model.to(device)) ---
+        # --- Actor graph (registered as buffers -> moved by model.to(device)) ---
         # Placeholders replaced by set_actor_graph() before training.
         num_attrs = len(actor_cardinalities)
         self.register_buffer("_graph_x",          torch.zeros(1, num_attrs, dtype=torch.long))
@@ -115,9 +115,9 @@ class MultiDomainGeometricModel(nn.Module):
 
         Parameters
         ----------
-        graph_x : (N_actors, 8) int64 — node feature matrix
-        graph_edge_index : (2, E) int64 — undirected co-occurrence edges
-        graph_edge_attr : (E,) float32 — normalised edge weights (optional).
+        graph_x : (N_actors, 8) int64 - node feature matrix
+        graph_edge_index : (2, E) int64 - undirected co-occurrence edges
+        graph_edge_attr : (E,) float32 - normalised edge weights (optional).
             Required by weighted_gnn; ignored by all other actor encoders.
         """
         self.register_buffer("_graph_x",         graph_x)

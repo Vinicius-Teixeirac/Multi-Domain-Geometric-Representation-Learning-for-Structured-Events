@@ -1,6 +1,6 @@
 # src/config/model_setup/multi_domain/multi_domain_gat_attention.yaml
 #
-# MultiDomainGeometricModel — GAT actor encoder + attention fusion.
+# MultiDomainGeometricModel - GAT actor encoder + attention fusion.
 #
 # Upgrade rationale:
 #   actor  : multi-head GAT learns which neighbours matter per event, rather

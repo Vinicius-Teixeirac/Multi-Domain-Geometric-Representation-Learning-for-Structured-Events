@@ -3,10 +3,10 @@
 Actor domain encoders for the multi-domain geometric model.
 
 Available types (set via model.actor.type in YAML):
-  sage_gnn       — GraphSAGE on unweighted co-occurrence graph (transductive)
-  gat_gnn        — Multi-head Graph Attention Network (transductive)
-  weighted_gnn   — GCN with normalised co-occurrence edge weights (transductive)
-  attribute_only — Attribute embedding only, no message passing (inductive-ready)
+  sage_gnn       - GraphSAGE on unweighted co-occurrence graph (transductive)
+  gat_gnn        - Multi-head Graph Attention Network (transductive)
+  weighted_gnn   - GCN with normalised co-occurrence edge weights (transductive)
+  attribute_only - Attribute embedding only, no message passing (inductive-ready)
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ class _ActorEncoderBase(nn.Module):
         ])
 
     def _encode_node_features(self, x: torch.Tensor) -> torch.Tensor:
-        """x: (N, num_attrs) int64 → (N, num_attrs * feat_embed_dim) float32"""
+        """x: (N, num_attrs) int64 -> (N, num_attrs * feat_embed_dim) float32"""
         return torch.cat(
             [emb(x[:, i]) for i, emb in enumerate(self.feat_embeddings)], dim=-1
         )
@@ -122,7 +122,7 @@ class ActorGATEncoder(_ActorEncoderBase):
             nn.LayerNorm(hidden_dim),
             nn.ReLU(),
         )
-        # concat=False: each head outputs hidden_dim; heads are averaged → (N, hidden_dim)
+        # concat=False: each head outputs hidden_dim; heads are averaged -> (N, hidden_dim)
         self.convs = nn.ModuleList([
             GATConv(hidden_dim, hidden_dim, heads=gat_heads, concat=False, dropout=dropout)
             for _ in range(num_layers)
@@ -198,7 +198,7 @@ class ActorWeightedEncoder(_ActorEncoderBase):
         actor2_idx: torch.Tensor,
         graph_edge_attr: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        # GCNConv expects edge_weight as 1-D (E,) float tensor; None → unweighted fallback
+        # GCNConv expects edge_weight as 1-D (E,) float tensor; None -> unweighted fallback
         edge_weight = (
             graph_edge_attr
             if graph_edge_attr is not None and graph_edge_attr.numel() > 0

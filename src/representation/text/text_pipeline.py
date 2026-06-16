@@ -63,7 +63,7 @@ class TextPipeline:
             return_tensors="pt",
         )
 
-        # IMPORTANT: convert BatchEncoding → plain dict
+        # IMPORTANT: convert BatchEncoding -> plain dict
         return {k: v for k, v in enc.items()}
 
     @staticmethod

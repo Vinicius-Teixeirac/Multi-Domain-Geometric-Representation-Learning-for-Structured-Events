@@ -6,10 +6,10 @@ All modules receive a list of per-domain view tensors (heterogeneous dims
 are allowed) and output class logits directly.
 
 Available types (set via model.fusion.type in YAML):
-  concat_mlp       — concatenate views → MLP  (geometry-blind)
-  attention        — softmax attention over view projections → MLP  (geometry-blind)
-  gated            — sigmoid gates from global context → gated sum → MLP  (geometry-blind)
-  geometry_aware   — log-map sphere views to tangent space first, then delegate
+  concat_mlp       - concatenate views -> MLP  (geometry-blind)
+  attention        - softmax attention over view projections -> MLP  (geometry-blind)
+  gated            - sigmoid gates from global context -> gated sum -> MLP  (geometry-blind)
+  geometry_aware   - log-map sphere views to tangent space first, then delegate
                      to any inner fusion type via model.fusion.inner_type
 
 geometry_aware fusion
@@ -18,7 +18,7 @@ Views whose encoders live on a hypersphere (HypersphericalEncoder,
 RiemannianProductEncoder, RegionAwareEncoder, ProjectedEncoder) are mapped
 from S^{d-1} to the tangent space at the north pole before fusion:
 
-    log_p(x)[..., :-1]  :  S^{d-1} → ℝ^{d-1}   (drop the zero last coord)
+    log_p(x)[..., :-1]  :  S^{d-1} -> R^{d-1}   (drop the zero last coord)
 
 Euclidean views (GNN actor encoder, EuclideanEncoder, MLP temporal encoders)
 pass through unchanged.
@@ -44,7 +44,7 @@ from .riemannian import log_north
 
 class ConcatMLPFusion(nn.Module):
     """
-    Late concatenation: cat(views) → MLP → logits.
+    Late concatenation: cat(views) -> MLP -> logits.
 
     The simplest fusion strategy; each view contributes equally to the
     classifier input. Serves as the default baseline.
@@ -79,7 +79,7 @@ class AttentionFusion(nn.Module):
     sum that is then classified by an MLP.
 
     This allows the model to dynamically emphasise whichever domain is most
-    informative per event — e.g. geography for natural disasters, actors for
+    informative per event - e.g. geography for natural disasters, actors for
     diplomatic incidents.
     """
 
@@ -110,7 +110,7 @@ class AttentionFusion(nn.Module):
         )
 
     def forward(self, views: list[torch.Tensor]) -> torch.Tensor:
-        # Attention scores: (B,) per view → (B, num_views)
+        # Attention scores: (B,) per view -> (B, num_views)
         scores = torch.stack([
             torch.tanh(proj(v)) @ self.query
             for proj, v in zip(self.score_projs, views)
@@ -177,8 +177,8 @@ class GeometryAwareFusion(nn.Module):
     Geometry-aware fusion: maps each view to a common Euclidean tangent space
     before applying any inner fusion strategy.
 
-    Sphere views  (S^{d-1})  →  log_p(x)[..., :-1]  ∈ ℝ^{d-1}
-    Euclidean views (ℝ^d)    →  identity             ∈ ℝ^d
+    Sphere views  (S^{d-1})  ->  log_p(x)[..., :-1]  in R^{d-1}
+    Euclidean views (R^d)    ->  identity             in R^d
 
     The inner fusion module (concat_mlp / attention / gated) is built with
     the *effective* dimensions after mapping, so it is correctly sized.
@@ -205,7 +205,7 @@ class GeometryAwareFusion(nn.Module):
         mapped = []
         for x, manifold in zip(views, self.view_manifolds):
             if manifold == "sphere":
-                # Log map at north pole: S^{d-1} → T_p ≅ ℝ^{d-1}
+                # Log map at north pole: S^{d-1} -> T_p ~= R^{d-1}
                 mapped.append(log_north(x)[..., :-1])
             else:
                 mapped.append(x)
@@ -260,7 +260,7 @@ def build_fusion(
     cfg : fusion sub-config (model.fusion in YAML)
     view_dims : output dimensions of [actor_encoder, geo_encoder, temporal_encoder]
     num_classes : number of target classes
-    view_manifolds : manifold tag per view — "sphere" or "euclidean".
+    view_manifolds : manifold tag per view - "sphere" or "euclidean".
         Derived automatically from encoder types in MultiDomainGeometricModel.
         Only used when fusion type is "geometry_aware".
     """

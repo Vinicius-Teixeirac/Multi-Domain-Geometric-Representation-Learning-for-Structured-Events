@@ -34,7 +34,7 @@ class HeterogeneousGNN(nn.Module):
         self.conv_type = conv_type.lower()
         self.dropout = dropout
 
-        # 🔒 ARCHITECTURE METADATA
+        # ARCHITECTURE METADATA
         self.hidden_dim = hidden_channels
         self.out_dim = out_channels
 

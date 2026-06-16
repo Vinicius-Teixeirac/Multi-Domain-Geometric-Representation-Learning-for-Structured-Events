@@ -1,11 +1,11 @@
 # src/config/model_setup/multi_domain/multi_domain_region_fourier_gated.yaml
 #
-# MultiDomainGeometricModel — weighted GNN + region-aware geo + Fourier temporal + gated fusion.
+# MultiDomainGeometricModel - weighted GNN + region-aware geo + Fourier temporal + gated fusion.
 #
 # Upgrade rationale:
 #   actor    : GCN with co-occurrence edge weights gives more influence to
 #              actor pairs that interact frequently in training events
-#   geo      : country/region embedding alongside S² coordinates captures
+#   geo      : country/region embedding alongside S^2 coordinates captures
 #              geopolitical context that pure coordinates cannot express
 #   temporal : learnable multi-frequency Fourier features discover arbitrary
 #              periodicities beyond fixed annual/weekly calendar cycles

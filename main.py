@@ -173,8 +173,8 @@ def main():
                 seen_splits.add(tag)
 
         # --------------------------------------------------
-        # Stage 3–5: entities, tabular features, text
-        #   (MLP / GNN / BERT only — multi-domain reads raw splits)
+        # Stage 3-5: entities, tabular features, text
+        #   (MLP / GNN / BERT only - multi-domain reads raw splits)
         # --------------------------------------------------
         seen_tabular: set[str] = set()
         for base_cfg in tabular_configs:

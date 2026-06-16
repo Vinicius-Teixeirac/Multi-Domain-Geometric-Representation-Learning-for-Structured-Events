@@ -3,19 +3,19 @@
 Geospatial domain encoders for the multi-domain geometric model.
 
 Available types (set via model.geo.type in YAML):
-  hyperspherical — Truly Riemannian: every representation lives on a hypersphere.
+  hyperspherical - Truly Riemannian: every representation lives on a hypersphere.
                    Operations use log/exp maps; no Euclidean excursions.
-  projected      — S² → Euclidean MLP → L2-normalise (ablation baseline).
-  euclidean      — Direct MLP on (lat, lon) with no sphere inductive bias.
-  region_aware   — Riemannian spherical path blended with country embedding.
+  projected      - S^2 -> Euclidean MLP -> L2-normalise (ablation baseline).
+  euclidean      - Direct MLP on (lat, lon) with no sphere inductive bias.
+  region_aware   - Riemannian spherical path blended with country embedding.
 
 Riemannian primitives
 ---------------------
 All spherical encoders use the north-pole (p = (0,...,0,1)) as the reference
 point.  Choosing the north pole simplifies the log/exp maps substantially:
 
-  log_p(x) = arccos(x_{-1}) · [x_{:-1} / ||x_{:-1}||, 0]
-  exp_p(v) = [sin(||v||)/||v|| · v_{:-1}, cos(||v||)]
+  log_p(x) = arccos(x_{-1}) * [x_{:-1} / ||x_{:-1}||, 0]
+  exp_p(v) = [sin(||v||)/||v|| * v_{:-1}, cos(||v||)]
 
 The last coordinate of tangent vectors at p is identically 0 by construction,
 so SphericalLinear operates on the (d-1)-dimensional tangent sub-coordinates
@@ -32,11 +32,11 @@ from .riemannian import SphericalLinear, SphereReLU, log_north, exp_north
 
 
 # =========================================================================
-# S² helper
+# S^2 helper
 # =========================================================================
 
 def _to_s2(lat_lon: torch.Tensor) -> torch.Tensor:
-    """Convert (lat, lon) degrees → unit S² coordinates in ℝ³."""
+    """Convert (lat, lon) degrees -> unit S^2 coordinates in R^3."""
     lat = lat_lon[:, 0] * (torch.pi / 180.0)
     lon = lat_lon[:, 1] * (torch.pi / 180.0)
     return torch.stack([
@@ -52,15 +52,15 @@ def _to_s2(lat_lon: torch.Tensor) -> torch.Tensor:
 
 class HypersphericalEncoder(nn.Module):
     """
-    Truly hyperspherical encoder — every intermediate and final representation
+    Truly hyperspherical encoder - every intermediate and final representation
     lives on a hypersphere.  No Euclidean excursions.
 
     Architecture (all steps stay on manifolds)
     ------------------------------------------
-    (lat, lon)  → _to_s2 →  S² ⊂ ℝ³
-                → SphericalLinear(3 → hidden_dim)  →  S^{hidden-1}
-                → SphereReLU                        →  S^{hidden-1}
-                → SphericalLinear(hidden_dim → out_dim)  →  S^{out-1}
+    (lat, lon)  -> _to_s2 ->  S^2 subset of R^3
+                -> SphericalLinear(3 -> hidden_dim)  ->  S^{hidden-1}
+                -> SphereReLU                        ->  S^{hidden-1}
+                -> SphericalLinear(hidden_dim -> out_dim)  ->  S^{out-1}
 
     Inductive bias
     --------------
@@ -81,7 +81,7 @@ class HypersphericalEncoder(nn.Module):
         lat_lon: torch.Tensor,
         geo_country_idx: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        x = _to_s2(lat_lon)   # (B, 3)          on S²
+        x = _to_s2(lat_lon)   # (B, 3)          on S^2
         x = self.layer1(x)    # (B, hidden_dim)  on S^{hidden-1}
         x = self.act(x)       # (B, hidden_dim)  on S^{hidden-1}
         x = self.layer2(x)    # (B, out_dim)     on S^{out-1}
@@ -90,7 +90,7 @@ class HypersphericalEncoder(nn.Module):
 
 class ProjectedEncoder(nn.Module):
     """
-    Ablation baseline: S² → Euclidean MLP → L2-normalise.
+    Ablation baseline: S^2 -> Euclidean MLP -> L2-normalise.
 
     The output lands on S^{out_dim-1} but intermediate activations are in
     unconstrained Euclidean space.  Use type: projected to measure the value
@@ -116,7 +116,7 @@ class ProjectedEncoder(nn.Module):
 
 class EuclideanEncoder(nn.Module):
     """
-    Direct MLP on (lat, lon) — no sphere inductive bias whatsoever.
+    Direct MLP on (lat, lon) - no sphere inductive bias whatsoever.
     Use type: euclidean to ablate whether any sphere geometry helps.
     """
 
@@ -143,13 +143,13 @@ class RegionAwareEncoder(nn.Module):
 
     Architecture
     ------------
-    (lat, lon)  → S²
-                → SphericalLinear(3 → hidden_dim)  →  S^{hidden-1}
-                → SphereReLU                        →  S^{hidden-1}
-                → log_north → tangent coords         ∈ ℝ^{hidden-1}
-                → concat with region embedding       ∈ ℝ^{hidden-1 + r}
-                → Linear → ℝ^{out-1}
-                → exp_north                          →  S^{out-1}
+    (lat, lon)  -> S^2
+                -> SphericalLinear(3 -> hidden_dim)  ->  S^{hidden-1}
+                -> SphereReLU                        ->  S^{hidden-1}
+                -> log_north -> tangent coords         in R^{hidden-1}
+                -> concat with region embedding       in R^{hidden-1 + r}
+                -> Linear -> R^{out-1}
+                -> exp_north                          ->  S^{out-1}
 
     The region embedding augments the purely geometric signal with geopolitical
     context (country-level event patterns).  It is injected in the tangent space
@@ -164,7 +164,7 @@ class RegionAwareEncoder(nn.Module):
         region_embed_dim: int = 16,
     ):
         super().__init__()
-        # padding_idx=0 → zero vector for unknown/missing country
+        # padding_idx=0 -> zero vector for unknown/missing country
         self.region_embed = nn.Embedding(
             region_cardinality, region_embed_dim, padding_idx=0
         )
@@ -178,7 +178,7 @@ class RegionAwareEncoder(nn.Module):
         lat_lon: torch.Tensor,
         geo_country_idx: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        x = _to_s2(lat_lon)                                # (B, 3)         on S²
+        x = _to_s2(lat_lon)                                # (B, 3)         on S^2
         h = self.sphere_layer(x)                           # (B, hidden)    on S^{hidden-1}
         h = self.sphere_act(h)                             # (B, hidden)    on S^{hidden-1}
         v = log_north(h)[..., :-1]                        # (B, hidden-1)  tangent coords

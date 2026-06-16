@@ -1,5 +1,5 @@
 # fusion_concat.yaml
-# Fusion ablation — geometry-blind concatenation MLP
+# Fusion ablation - geometry-blind concatenation MLP
 # Reference: sage / hyperspherical / riemannian_product / geometry_aware(gated)
 # This file: sage / hyperspherical / riemannian_product / concat_mlp
 #

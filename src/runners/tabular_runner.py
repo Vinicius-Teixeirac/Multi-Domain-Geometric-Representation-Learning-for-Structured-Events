@@ -35,7 +35,7 @@ def ensure_tabular_features(
     expected_test = out_dir / f"test_{split_tag}_features.parquet"
 
     if expected_train.exists() and expected_test.exists() and not force:
-        logger.info("Tabular features already exist — skipping")
+        logger.info("Tabular features already exist - skipping")
         return {"skipped": True, "dataset": dataset, "split_tag": split_tag}
 
     logger.info("Running tabular feature pipeline...")

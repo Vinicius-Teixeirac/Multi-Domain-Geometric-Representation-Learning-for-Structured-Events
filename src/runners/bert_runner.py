@@ -96,7 +96,7 @@ def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
     if exp_id:
         skip, info = should_skip(exp_id, dataset)
         if skip:
-            logger.info("Skipping BERT for exp_id=%s — info=%s", exp_id, info)
+            logger.info("Skipping BERT for exp_id=%s - info=%s", exp_id, info)
             return {"skipped": True, "exp_id": exp_id, **info}
 
     best_model_path = train_model(
