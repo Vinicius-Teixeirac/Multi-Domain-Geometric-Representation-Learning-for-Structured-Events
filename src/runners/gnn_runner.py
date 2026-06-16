@@ -97,6 +97,12 @@ def run_gnn(cfg: Dict) -> Dict:
             "Use GAT or GraphSAGE, or enable node features."
         )
 
+    # --- Idempotency: central check (before any expensive setup)
+    if exp_id:
+        skip, info = should_skip(exp_id, dataset)
+        if skip:
+            logger.info("Skipping GNN for exp_id=%s - info=%s", exp_id, info)
+            return {"skipped": True, "exp_id": exp_id, **info}
 
     # ==============================================================
     # DATA
@@ -270,13 +276,6 @@ def run_gnn(cfg: Dict) -> Dict:
     # ==============================================================
     # TRAINING
     # ==============================================================
-
-    # --- Idempotency: central check
-    if exp_id:
-        skip, info = should_skip(exp_id, dataset)
-        if skip:
-            logger.info("Skipping GNN for exp_id=%s — info=%s", exp_id, info)
-            return {"skipped": True, "exp_id": exp_id, **info}
 
     best_model_path = train_model(
         model=model,

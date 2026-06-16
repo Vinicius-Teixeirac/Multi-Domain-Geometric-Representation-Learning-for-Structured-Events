@@ -54,6 +54,15 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
 
     start_time = time.perf_counter()
 
+    exp_id = cfg.get("exp_id", "")
+
+    # --- Idempotency: central check (before any expensive setup)
+    if exp_id:
+        skip, info = should_skip(exp_id, cfg["dataset"])
+        if skip:
+            logger.info("Skipping MLP for exp_id=%s - info=%s", exp_id, info)
+            return {"skipped": True, "exp_id": exp_id, **info}
+
     # ----------------------
     # Data
     # ----------------------
@@ -82,15 +91,6 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
     class_weights = compute_class_weights(
         dm.train_df["QuadClass"].to_numpy(), num_classes=NUM_QUAD_CLASSES
     ).to(cfg["training"]["device"])
-
-    exp_id = cfg.get("exp_id", "")
-
-    # --- Idempotency: central check
-    if exp_id:
-        skip, info = should_skip(exp_id, cfg["dataset"])
-        if skip:
-            logger.info("Skipping MLP for exp_id=%s — info=%s", exp_id, info)
-            return {"skipped": True, "exp_id": exp_id, **info}
 
     best_model_path = train_model(
         model=model,
