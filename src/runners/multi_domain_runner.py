@@ -6,7 +6,7 @@ Pipeline:
   1. Data module setup (loads splits, builds actor graph, creates datasets)
   2. Model construction (uses actor graph cardinalities)
   3. Actor graph loading into model (registered buffers)
-  4. model.to(device)  ← moves all parameters AND graph buffers to device
+  4. model.to(device)  <- moves all parameters AND graph buffers to device
   5. Training via shared train_model()
   6. Evaluation via evaluate_model()
   7. Results persisted to RESULTS_DIR
@@ -18,6 +18,7 @@ Usage (from main.py or standalone):
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from datetime import datetime
@@ -34,6 +35,7 @@ from src.training.train import train_model
 from src.utils.class_weights import compute_class_weights
 from src.utils.constants import NUM_QUAD_CLASSES
 from src.utils.experiments_logging import get_logger
+from src.utils.idempotency import should_skip
 from src.utils.seed import set_seed
 
 logger = get_logger(__name__)
@@ -82,10 +84,20 @@ def run_multi_domain(
 
     logger.info("=== MultiDomainGeometricModel | %s | seed=%d ===", dataset_name, seed)
 
+    config_stem = Path(cfg.get("_config_path", "unknown")).stem
+    descriptor = f"{dataset_name}_{split_tag}_{config_stem}_seed{seed}"
+    exp_id = "multi_domain_" + hashlib.md5(descriptor.encode()).hexdigest()[:8]
+
+    # --- Idempotency: central check (before any expensive setup)
+    skip, info = should_skip(exp_id, dataset_name)
+    if skip:
+        logger.info("Skipping multi-domain run for exp_id=%s - info=%s", exp_id, info)
+        return {"skipped": True, "exp_id": exp_id, **info}
+
     # ------------------------------------------------------------------
     # 1. Data module
     # ------------------------------------------------------------------
-    logger.info("Setting up data module …")
+    logger.info("Setting up data module ...")
     t0 = time.time()
     dm = MultiDomainDataModule(
         dataset_name=dataset_name,
@@ -101,7 +113,7 @@ def run_multi_domain(
         time.time() - t0,
     )
     logger.info(
-        "Splits — train: %d  val: %d  test: %d",
+        "Splits - train: %d  val: %d  test: %d",
         len(dm.train_dataset),
         len(dm.valid_dataset) if dm.valid_dataset else 0,
         len(dm.test_dataset),
@@ -116,7 +128,7 @@ def run_multi_domain(
     # ------------------------------------------------------------------
     # 3. Model construction
     # ------------------------------------------------------------------
-    logger.info("Building model …")
+    logger.info("Building model ...")
     model = MultiDomainGeometricModel(
         model_cfg=model_cfg,
         actor_cardinalities=dm.actor_cardinalities,
@@ -138,9 +150,7 @@ def run_multi_domain(
     # ------------------------------------------------------------------
     # 4. Training  (model.to(device) is called inside train_model)
     # ------------------------------------------------------------------
-    logger.info("Training …")
-    config_stem = Path(cfg.get("_config_path", "unknown")).stem
-    exp_id = f"multi_domain_{dataset_name}_{split_tag}_{config_stem}"
+    logger.info("Training ...")
     best_model_path = train_model(
         model=model,
         train_loader=dm.train_dataloader(),
@@ -162,7 +172,7 @@ def run_multi_domain(
     # ------------------------------------------------------------------
     checkpoint_path = best_model_path
 
-    logger.info("Evaluating on test set …")
+    logger.info("Evaluating on test set ...")
     metrics, confusion = evaluate_model(
         model=model,
         test_loader=dm.test_dataloader(),
