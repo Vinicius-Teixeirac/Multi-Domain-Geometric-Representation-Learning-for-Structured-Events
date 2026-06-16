@@ -125,7 +125,7 @@ def build_event_texts(df: pd.DataFrame, dictionaries: dict) -> list[str]:
     verbs = INTERACTION_VERBS
     texts = []
 
-    for i, row in df.iterrows():
+    for i, (_, row) in enumerate(df.iterrows()):
         verb = verbs[i % len(verbs)]  # deterministic
         texts.append(event_to_text(row, dictionaries, verb))
 
