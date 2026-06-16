@@ -49,6 +49,8 @@ def ensure_splits(
 
     splitter.run(
         filename=cleaned_filename,
+        strategy="temporal" if sort_by_time else "random",
+        time_column=sort_by_time,
         test_size=test_size,
         valid_size=valid_size,
         stratify_by=stratify_by,

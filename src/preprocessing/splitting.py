@@ -160,7 +160,7 @@ class Splitter:
         )
 
         logger.info(
-            f"Split sizes — train+val: {len(df_train_valid)}, test: {len(df_test)}"
+            f"Split sizes - train+val: {len(df_train_valid)}, test: {len(df_test)}"
         )
 
         self._save(df_test, "test", tag)
@@ -194,6 +194,18 @@ class Splitter:
                 f"Skipping validation split due to small dataset size ({len(df_train_valid)})"
             )
             self._save(df_train_valid, "train", tag)
+            self._save_metadata(
+                tag,
+                {
+                    "strategy": strategy,
+                    "test_size": test_size,
+                    "valid_size": None,
+                    "stratify_by": stratify_by,
+                    "time_column": time_column,
+                    "random_state": random_state,
+                    "num_rows": len(df),
+                },
+            )
             return
 
         relative_val_size = valid_size / (1.0 - test_size)
@@ -210,7 +222,7 @@ class Splitter:
         )
 
         logger.info(
-            f"Final split sizes — train: {len(df_train)}, "
+            f"Final split sizes - train: {len(df_train)}, "
             f"valid: {len(df_valid)}, test: {len(df_test)}"
         )
 
