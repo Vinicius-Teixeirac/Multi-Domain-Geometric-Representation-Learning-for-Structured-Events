@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Optional, Tuple, Dict
 
@@ -25,10 +26,11 @@ def _find_results_json(dataset: str, exp_id: str) -> Optional[Path]:
         return None
     for p in base.rglob("*.json"):
         try:
-            if exp_id in p.read_text():
-                return p
-        except Exception:
+            data = json.loads(p.read_text())
+        except (OSError, json.JSONDecodeError):
             continue
+        if data.get("exp_id") == exp_id:
+            return p
     return None
 
 
