@@ -1,10 +1,31 @@
-# GDELT Representation Learning: A Comparative Study on Inductive Biases
+# Multi-Domain Geometric Representation Learning for Structured Events
 
-This repository contains the experimental framework for a comparative study on **representation learning and inductive biases** using the **GDELT Event Database**.
+This repository is the official code release for the paper **"Multi-Domain Geometric Representation Learning for Structured Events,"** accepted at **BRACIS 2026** (Brazilian Conference on Intelligent Systems). The paper is not yet published; this repo will be updated with the camera-ready link/DOI once available.
 
-The study investigates how different deep learning architectures (operating under different data modeling assumptions) perform on the task of predictive event classification (`QuadClass`). By holding the informational content of the data constant while varying its structural representation (Tabular, Graph, Text), I isolate the effect of inductive bias on performance.
+> **Status:** Accepted, awaiting camera-ready / proceedings publication.
 
-The baseline experiments motivate a **Multi-Domain Geometric Model** (the proposal), which decomposes events into orthogonal geometric domains (relational, spherical, and circular-temporal) and fuses them in a geometry-aware manner.
+**Authors:** Vinícius T. C. Freitas, Kenzo M. Sakiyama, Ricardo M. Marcacini
+Institute of Mathematics and Computer Sciences (ICMC), University of São Paulo (USP), São Carlos, SP, Brazil
+
+## Citation
+
+A formal citation (with DOI and proceedings details) will be added once the paper is published. In the meantime, you can cite it as:
+
+```bibtex
+@inproceedings{freitas2026multidomain,
+  title     = {Multi-Domain Geometric Representation Learning for Structured Events},
+  author    = {Freitas, Vin{\'i}cius T. C. and Sakiyama, Kenzo M. and Marcacini, Ricardo M.},
+  booktitle = {Proceedings of the Brazilian Conference on Intelligent Systems (BRACIS)},
+  year      = {2026},
+  note      = {To appear}
+}
+```
+
+This repository contains the experimental framework backing the paper: a comparative study on **representation learning and inductive biases** using the **GDELT Event Database**.
+
+The study investigates how different deep learning architectures (operating under different data modeling assumptions) perform on the task of predictive event classification (`QuadClass`). By holding the informational content of the data constant while varying its structural representation (Tabular, Graph, Text), we isolate the effect of inductive bias on performance.
+
+The baseline experiments motivate the **Multi-Domain Geometric Model** proposed in the paper, which decomposes events into orthogonal geometric domains (relational, spherical, and circular-temporal) and fuses them in a geometry-aware manner.
 
 ## 📂 Repository Structure
 
@@ -125,10 +146,10 @@ python main.py \
 ```
 
 Options:
-- `--seed`: Set global random seed (default: 42). I acknowledge that pytorch uses randomized linear algebra, which speeds up computations and whose behavior was intentionally kept. Results may vary slightly even for the same seed.
+- `--seed`: Set global random seed (default: 42). We acknowledge that pytorch uses randomized linear algebra, which speeds up computations and whose behavior was intentionally kept. Results may vary slightly even for the same seed.
 - `--force`: Force re-computation of preprocessing, encoding, and graph building stages.
 
-> The data used in these experiments are far large than what GitHub allows to upload. It was acquired using this other [repository](https://github.com/Vinicius-Teixeirac/GDELT-2.0-EVENT-DATABASE-Pipeline) and you can contact me if you want to see it. I will create a Huggin Face datasets repo soon and update here.
+> The data used in these experiments is provided via [Git LFS](https://git-lfs.com/) in `data/raw/` (it was acquired using this other [repository](https://github.com/Vinicius-Teixeirac/GDELT-2.0-EVENT-DATABASE-Pipeline)). Make sure you have Git LFS installed (`git lfs install`) before cloning, otherwise the parquet files will be downloaded as pointer stubs.
 
 > The provided config files in `src/config/model_setup` were the ones used across the experiments. Of course, an interested reader can edit them to expand the experiments.
 
@@ -136,7 +157,7 @@ Options:
 
 # The real deal 🔥
 
-What one may need to know about the GDELT Event Database metadata is [on this file](http://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf), which is gracefully summarized by me on `notebooks/GDELT_metadata.ipynb`. There it says:
+What one may need to know about the GDELT Event Database metadata is [on this file](http://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf), which is summarized in `notebooks/GDELT_metadata.ipynb`. There it says:
 
 ```
 GDELT Event records are stored in an expanded version of the dyadic CAMEO format,
@@ -147,12 +168,12 @@ These events are extracted from newspaper articles and concern geopolitical happ
 
 GDELT seamlessly supports *What* (action perfomed), *Who* (Actor1), *Whom* (Actor2), *When* (Time Attributes) and *Where* (Geographic Attributes). *What* happens to be the most interesting component to predict in real world applications.
 
-I build three distinct representations of the same underlying data.
+We build three distinct representations of the same underlying data.
 
 > Note on Data Engineering: Detailed analysis of column's roles, features distributions, heavy encoding decisions and cleaning steps are documented in `notebooks/EDA.ipynb`.
 
 ## The Builds: Three Views of the Same World (Baseline Experiments)
-I hold the informational content constant across all experiments. No model sees "more" data than another; they just see it structured differently.
+We hold the informational content constant across all experiments. No model sees "more" data than another; they just see it structured differently.
 
 - **Tabular Build (The Euclidean View):** It treats events as independent, orderless observations. Structure: A flat vector of concatenated features (Actor properties + Geo coordinates + Time).
 
@@ -171,7 +192,7 @@ I hold the informational content constant across all experiments. No model sees 
   Assumption: The class label can be inferred from linguistic patterns and semantic compositionality found in pre-trained language models.
 
 ## The Models: A Study in Inductive Bias
-I employ a suite of architectures to test how different inductive biases (the set of assumptions a model makes to predict outputs for unseen inputs) affect representation learning.
+We employ a suite of architectures to test how different inductive biases (the set of assumptions a model makes to predict outputs for unseen inputs) affect representation learning.
 
 1. **MLP (Multi-Layer Perceptron)** Bias: Weak and general (Universal Function Approximator).
   - Mechanism: MLPs assume functions are smooth or hierarchical but lack domain-specific knowledge like locality (CNNs) or sequence (RNNs). Implication: They are powerful when scaled but data-hungry. They must learn structure purely from the dataset statistics rather than relying on built-in architectural assumptions.
@@ -192,7 +213,7 @@ I employ a suite of architectures to test how different inductive biases (the se
 
 4. **BERT (Bidirectional Encoder Representations from Transformers)** Setup: BERT-base uncased → Linear Classification Head.
 
-  * Training: I freeze the backbone and fine-tune only the last 1–2 layers on the training split.
+  * Training: We freeze the backbone and fine-tune only the last 1–2 layers on the training split.
 
   > But BERT was trained over wikipedia, which might contain tons of geopolitical information. Isn't this cheating? No. BERT's pretraining is an inductive bias, not task supervision. Just as Graph models encode priors about connectivity, BERT encodes priors about linguistic structure. But it's true that BERT is by far the largest model.
 
@@ -318,3 +339,9 @@ python main.py --multi-domain-configs \
 Results are written to `results/{dataset_name}/MultiDomainGeometricModel/` as JSON, following the same structure as the unidomain model outputs.
 
 For a complete walkthrough of the architecture, mathematical derivations, and code, see `notebooks/multi_domain_architecture.ipynb`.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
