@@ -88,10 +88,12 @@ class HeterogeneousEventGraphBuilder(GraphBuilder):
         # --------------------------------------------------
         # Component indices (split-local, role-aware)
         # --------------------------------------------------
-        actor1_index = {v: i for i, v in enumerate(df["Actor1ID"].dropna().unique())}
-        actor2_index = {v: i for i, v in enumerate(df["Actor2ID"].dropna().unique())}
-        geo_index = {v: i for i, v in enumerate(df["Event_GeoID"].dropna().unique())}
-        day_index = {v: i for i, v in enumerate(df["Day"].dropna().unique())}
+        # Sorted (not first-occurrence) order: index assignment must not
+        # depend on row order upstream of this builder.
+        actor1_index = {v: i for i, v in enumerate(sorted(df["Actor1ID"].dropna().unique()))}
+        actor2_index = {v: i for i, v in enumerate(sorted(df["Actor2ID"].dropna().unique()))}
+        geo_index = {v: i for i, v in enumerate(sorted(df["Event_GeoID"].dropna().unique()))}
+        day_index = {v: i for i, v in enumerate(sorted(df["Day"].dropna().unique()))}
 
         data[self.ACTOR1].num_nodes = len(actor1_index)
         data[self.ACTOR2].num_nodes = len(actor2_index)
