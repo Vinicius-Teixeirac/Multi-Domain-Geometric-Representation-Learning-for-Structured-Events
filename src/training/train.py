@@ -11,7 +11,10 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 
 from src.utils.metrics import compute_classification_metrics
+from src.utils.experiments_logging import get_logger
 from src.config.paths import ARTIFACTS_DATA
+
+logger = get_logger(__name__)
 
 
 def train_model(
@@ -28,7 +31,13 @@ def train_model(
     device: str = "cpu",
     metric: str = "f1_macro",
     exp_id: str = "",
-):
+) -> Path:
+    """Train model with early stopping; save and return the best checkpoint path.
+
+    Validation metrics are tracked each epoch; training halts when the monitored
+    metric does not improve for `patience` consecutive epochs.  When no
+    val_loader is provided the final epoch weights are saved instead.
+    """
     model.to(device)
 
     criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
@@ -43,7 +52,7 @@ def train_model(
     out_dir.mkdir(parents=True, exist_ok=True)
     best_model_path = out_dir / "best_model.pt"
 
-    best_metric = -1.0
+    best_metric = -1.0  # sentinel: any real metric value (0..1) will be an improvement
     epochs_no_improve = 0
 
     for epoch in range(1, num_epochs + 1):
@@ -106,18 +115,18 @@ def train_model(
                 epochs_no_improve += 1
 
             if epochs_no_improve >= patience:
-                print(f"Early stopping at epoch {epoch}")
+                logger.info(f"Early stopping at epoch {epoch}")
                 break
 
         if val_loader is not None:
-            print(
+            logger.info(
                 f"Epoch {epoch} | "
                 f"Train loss: {train_loss:.4f} | "
                 f"Val {metric}: {val_metric:.4f} | "
                 f"Acc: {metrics['accuracy']:.4f}"
             )
         else:
-            print(f"Epoch {epoch} | Train loss: {train_loss:.4f}")
+            logger.info(f"Epoch {epoch} | Train loss: {train_loss:.4f}")
 
     # When there is no validation set, save the final model so evaluate_model can load it.
     if val_loader is None:
@@ -132,5 +141,5 @@ def train_model(
             best_model_path,
         )
 
-    print(f"Best validation macro-metric: {best_metric:.4f}")
+    logger.info(f"Best validation macro-metric: {best_metric:.4f}")
     return best_model_path
