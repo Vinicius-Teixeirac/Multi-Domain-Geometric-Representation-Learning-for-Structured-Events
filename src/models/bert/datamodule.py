@@ -1,7 +1,7 @@
 # src/models/bert/datamodule.py
 
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 import pandas as pd
 from torch.utils.data import DataLoader
@@ -50,12 +50,12 @@ class BertEventDataModule:
 
     def setup(self):
         train_df = self._load_split("train", self.split_tag)
-        val_df = self._load_split("valid", self.split_tag)
-        test_df = self._load_split("test", self.split_tag)
+        val_df   = self._load_split("valid", self.split_tag)
+        test_df  = self._load_split("test", self.split_tag)
 
         self.train_dataset = self._build_dataset(train_df)
-        self.val_dataset = self._build_dataset(val_df)
-        self.test_dataset = self._build_dataset(test_df)
+        self.val_dataset   = self._build_dataset(val_df) if val_df is not None else None
+        self.test_dataset  = self._build_dataset(test_df)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -68,9 +68,11 @@ class BertEventDataModule:
             / f"{split}_{split_tag}_text.parquet"
         )
 
-    def _load_split(self, split: str, split_tag: str) -> pd.DataFrame:
+    def _load_split(self, split: str, split_tag: str) -> Optional[pd.DataFrame]:
         path = self._split_path(split, split_tag)
         if not path.exists():
+            if split == "valid":
+                return None
             raise FileNotFoundError(
                 f"Missing text data for split='{split}', tag='{split_tag}': {path}"
             )
@@ -95,7 +97,9 @@ class BertEventDataModule:
     def train_dataloader(self) -> DataLoader:
         return self._loader(self.train_dataset, shuffle=True)
 
-    def val_dataloader(self) -> DataLoader:
+    def val_dataloader(self) -> Optional[DataLoader]:
+        if self.val_dataset is None:
+            return None
         return self._loader(self.val_dataset, shuffle=False)
 
     def test_dataloader(self) -> DataLoader:

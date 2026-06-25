@@ -1,5 +1,7 @@
 # src/utils/categorical_cardinalities.py
+from pathlib import Path
 from typing import Dict
+
 from src.config.schema.encoding_schema import ENCODING_SCHEMA
 from src.representation.tabular.encoding import SafeLabelEncoder, HashEncoder
 

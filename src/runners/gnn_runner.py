@@ -152,7 +152,7 @@ def run_gnn(cfg: Dict) -> Dict:
         train_loader, val_loader, test_loader = make_hetero_gnn_loaders(
             dataset_name=dataset,
             batch_size=cfg["training"]["batch_size"],
-            num_neighbors=cfg["graph"]["num_neighbors"],
+            num_neighbors=cfg["graph"].get("num_neighbors"),
             node_feature_policy=node_feature_policy,
             split_tag=split_tag,
         )
