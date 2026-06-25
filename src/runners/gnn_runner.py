@@ -1,14 +1,10 @@
 # src/runners/gnn_runner.py
 
-import json
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
-import numpy as np
 import torch.nn as nn
-from torch.nn.parameter import UninitializedParameter
 
 from src.training.train import train_model
 from src.testing.evaluate import evaluate_model
@@ -35,38 +31,9 @@ from src.representation.graph.heterogeneous.loaders import make_hetero_gnn_loade
 from src.models.tabular_encoder import TabularInputEncoder
 
 from src.utils.experiments_logging import get_logger
+from src.utils.runner_utils import count_trainable_parameters, make_json_serializable, save_runner_results
 
 logger = get_logger(__name__)
-
-# ------------------------------------------------------------------
-# Helpers
-# ------------------------------------------------------------------
-
-def count_trainable_parameters(model: nn.Module) -> int:
-    """Return the total number of initialized, trainable parameters (skips lazy params)."""
-    total = 0
-    for p in model.parameters():
-        if not p.requires_grad:
-            continue
-        if isinstance(p, UninitializedParameter):
-            continue
-        total += p.numel()
-    return total
-
-
-def make_json_serializable(obj: object) -> object:
-    """Recursively convert numpy scalars/arrays to native Python types for json.dump."""
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, (np.integer,)):
-        return int(obj)
-    if isinstance(obj, (np.floating,)):
-        return float(obj)
-    if isinstance(obj, dict):
-        return {k: make_json_serializable(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [make_json_serializable(v) for v in obj]
-    return obj
 
 
 # ------------------------------------------------------------------
@@ -316,8 +283,6 @@ def run_gnn(cfg: Dict) -> Dict:
     # ==============================================================
 
     results_dir = RESULTS_DIR / dataset / model.__class__.__name__
-    results_dir.mkdir(parents=True, exist_ok=True)
-
     results = {
         "exp_id": exp_id,
         "dataset": dataset,
@@ -347,11 +312,7 @@ def run_gnn(cfg: Dict) -> Dict:
         "confusion_matrix": make_json_serializable(confusion),
     }
 
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    result_path = results_dir / f"gnn_results_{timestamp}.json"
-
-    with open(result_path, "w") as f:
-        json.dump(results, f, indent=2)
+    save_runner_results(results, results_dir, "gnn")
 
     logger.info("GNN experiment completed successfully.")
 

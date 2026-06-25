@@ -1,14 +1,10 @@
 # src/runners/bert_runner.py
 
 import argparse
-import json
-import yaml
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 
-import numpy as np
 import torch.nn as nn
 
 from src.models.bert.datamodule import BertEventDataModule
@@ -20,31 +16,9 @@ from src.utils.constants import NUM_QUAD_CLASSES
 from src.config.paths import RESULTS_DIR, ARTIFACTS_DATA
 from src.utils.experiments_logging import get_logger
 from src.utils.idempotency import should_skip
+from src.utils.runner_utils import count_trainable_parameters, load_yaml_config, make_json_serializable, save_runner_results
 
 logger = get_logger(__name__)
-
-
-# ------------------------------------------------------------------
-# Helpers
-# ------------------------------------------------------------------
-def count_trainable_parameters(model: nn.Module) -> int:
-    """Return the total number of parameters that will receive gradients."""
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-
-def make_json_serializable(obj: object) -> object:
-    """Recursively convert numpy scalars/arrays to native Python types for json.dump."""
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, (np.integer,)):
-        return int(obj)
-    if isinstance(obj, (np.floating,)):
-        return float(obj)
-    if isinstance(obj, dict):
-        return {k: make_json_serializable(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [make_json_serializable(v) for v in obj]
-    return obj
 
 
 # ------------------------------------------------------------------
@@ -140,8 +114,6 @@ def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
         / dataset
         / model.__class__.__name__
     )
-    results_dir.mkdir(parents=True, exist_ok=True)
-
     results = {
         "exp_id": exp_id,
         "dataset": dataset,
@@ -170,11 +142,7 @@ def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
         "confusion_matrix": make_json_serializable(confusion),
     }
 
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    result_path = results_dir / f"bert_results_{timestamp}.json"
-
-    with open(result_path, "w") as f:
-        json.dump(results, f, indent=2)
+    save_runner_results(results, results_dir, "bert")
 
     logger.info("BERT experiment completed successfully.")
 
@@ -195,14 +163,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_config(path: str) -> Dict[str, Any]:
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
-
-
 def main():
     args = parse_args()
-    cfg = load_config(args.config)
+    cfg = load_yaml_config(args.config)
     run_bert(cfg)
 
 

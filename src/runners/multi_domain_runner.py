@@ -19,12 +19,9 @@ Usage (from main.py or standalone):
 from __future__ import annotations
 
 import hashlib
-import json
 import time
-from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 import torch
 
 from src.config.paths import ARTIFACTS_DATA, RESULTS_DIR
@@ -36,24 +33,10 @@ from src.utils.class_weights import compute_class_weights
 from src.utils.constants import NUM_QUAD_CLASSES
 from src.utils.experiments_logging import get_logger
 from src.utils.idempotency import should_skip
+from src.utils.runner_utils import count_trainable_parameters, make_json_serializable, save_runner_results
 from src.utils.seed import set_seed
 
 logger = get_logger(__name__)
-
-
-def make_json_serializable(obj: object) -> object:
-    """Recursively convert numpy scalars/arrays to native Python types for json.dump."""
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, (np.integer,)):
-        return int(obj)
-    if isinstance(obj, (np.floating,)):
-        return float(obj)
-    if isinstance(obj, dict):
-        return {k: make_json_serializable(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [make_json_serializable(v) for v in obj]
-    return obj
 
 
 def run_multi_domain(
@@ -145,7 +128,7 @@ def run_multi_domain(
         graph_edge_attr=getattr(dm.actor_graph, "edge_attr", None),
     )
 
-    n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    n_params = count_trainable_parameters(model)
     logger.info("Trainable parameters: %s", f"{n_params:,}")
 
     # ------------------------------------------------------------------
@@ -189,8 +172,6 @@ def run_multi_domain(
     runtime_sec = time.perf_counter() - start_time
 
     results_dir = RESULTS_DIR / dataset_name / model.__class__.__name__
-    results_dir.mkdir(parents=True, exist_ok=True)
-
     results = {
         "exp_id": exp_id,
         "dataset": dataset_name,
@@ -223,11 +204,7 @@ def run_multi_domain(
         "confusion_matrix": make_json_serializable(confusion),
     }
 
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    results_path = results_dir / f"multi_domain_results_{timestamp}.json"
-
-    with open(results_path, "w") as f:
-        json.dump(results, f, indent=2)
+    results_path = save_runner_results(results, results_dir, "multi_domain")
 
     logger.info("Results saved -> %s", results_path)
     return results
