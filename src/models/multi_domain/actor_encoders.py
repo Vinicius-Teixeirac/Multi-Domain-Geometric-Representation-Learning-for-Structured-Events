@@ -86,6 +86,7 @@ class ActorSAGEEncoder(_ActorEncoderBase):
         actor2_idx: torch.Tensor,
         graph_edge_attr: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Run SAGE message passing and return the concatenated actor-pair embedding."""
         h = self.input_proj(self._encode_node_features(graph_x))
         for conv in self.convs:
             h = F.relu(conv(h, graph_edge_index))
@@ -144,6 +145,7 @@ class ActorGATEncoder(_ActorEncoderBase):
         actor2_idx: torch.Tensor,
         graph_edge_attr: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Run GAT message passing and return the concatenated actor-pair embedding."""
         h = self.input_proj(self._encode_node_features(graph_x))
         for conv in self.convs:
             h = F.relu(conv(h, graph_edge_index))
@@ -198,6 +200,7 @@ class ActorWeightedEncoder(_ActorEncoderBase):
         actor2_idx: torch.Tensor,
         graph_edge_attr: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Run weighted GCN message passing and return the concatenated actor-pair embedding."""
         # GCNConv expects edge_weight as 1-D (E,) float tensor; None -> unweighted fallback
         edge_weight = (
             graph_edge_attr
@@ -254,6 +257,7 @@ class ActorAttributeEncoder(_ActorEncoderBase):
         actor2_idx: torch.Tensor,
         graph_edge_attr: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Embed actors from attributes only (no message passing) and return the pair embedding."""
         h = self.attr_proj(self._encode_node_features(graph_x))
         a1, a2 = h[actor1_idx], h[actor2_idx]
         return self.pair_proj(torch.cat([a1, a2], dim=-1))

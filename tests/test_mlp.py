@@ -12,6 +12,7 @@ from tests.conftest import (
 
 @pytest.fixture
 def mlp():
+    """Small EventMLP instance for fast unit tests."""
     return EventMLP(
         categorical_cardinalities=CATEGORICAL_CARDINALITIES,
         numeric_dim=NUMERIC_DIM,

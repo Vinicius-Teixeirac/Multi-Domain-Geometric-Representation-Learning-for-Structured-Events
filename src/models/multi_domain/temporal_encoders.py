@@ -26,6 +26,9 @@ import torch.nn as nn
 
 from .riemannian import SphericalLinear, log_north, exp_north
 
+_PERIOD_ANNUAL: float = 365.0  # calendar days per year
+_PERIOD_WEEKLY: float = 7.0    # calendar days per week
+
 
 # =========================================================================
 # Encoder implementations
@@ -60,10 +63,10 @@ class ProductManifoldEncoder(nn.Module):
         dow = time_features[:, 2:3]
         encoded = torch.cat([
             t,
-            torch.sin(2 * torch.pi * doy / 365.0),
-            torch.cos(2 * torch.pi * doy / 365.0),
-            torch.sin(2 * torch.pi * dow / 7.0),
-            torch.cos(2 * torch.pi * dow / 7.0),
+            torch.sin(2 * torch.pi * doy / _PERIOD_ANNUAL),
+            torch.cos(2 * torch.pi * doy / _PERIOD_ANNUAL),
+            torch.sin(2 * torch.pi * dow / _PERIOD_WEEKLY),
+            torch.cos(2 * torch.pi * dow / _PERIOD_WEEKLY),
         ], dim=-1)
         return self.proj(encoded)
 
@@ -85,8 +88,8 @@ class LearnablePeriodEncoder(nn.Module):
 
     def __init__(self, out_dim: int = 16, hidden_dim: int = 32):
         super().__init__()
-        self.log_period_annual = nn.Parameter(torch.log(torch.tensor(365.0)))
-        self.log_period_weekly = nn.Parameter(torch.log(torch.tensor(7.0)))
+        self.log_period_annual = nn.Parameter(torch.log(torch.tensor(_PERIOD_ANNUAL)))
+        self.log_period_weekly = nn.Parameter(torch.log(torch.tensor(_PERIOD_WEEKLY)))
         self.proj = nn.Sequential(
             nn.Linear(self._ENCODED_DIM, hidden_dim),
             nn.LayerNorm(hidden_dim),
@@ -189,12 +192,12 @@ class RiemannianProductEncoder(nn.Module):
 
         # Embed circular inputs on S^1 subset of  R^2
         s1_ann = torch.cat([
-            torch.sin(2 * torch.pi * doy / 365.0),
-            torch.cos(2 * torch.pi * doy / 365.0),
+            torch.sin(2 * torch.pi * doy / _PERIOD_ANNUAL),
+            torch.cos(2 * torch.pi * doy / _PERIOD_ANNUAL),
         ], dim=-1)                                              # (B, 2)
         s1_wk = torch.cat([
-            torch.sin(2 * torch.pi * dow / 7.0),
-            torch.cos(2 * torch.pi * dow / 7.0),
+            torch.sin(2 * torch.pi * dow / _PERIOD_WEEKLY),
+            torch.cos(2 * torch.pi * dow / _PERIOD_WEEKLY),
         ], dim=-1)                                              # (B, 2)
 
         # SphericalLinear: each S^1 -> S^{hidden-1}

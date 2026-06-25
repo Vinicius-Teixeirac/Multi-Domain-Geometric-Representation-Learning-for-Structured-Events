@@ -61,7 +61,7 @@ class EventDataset(Dataset):
     def __len__(self) -> int:
         return len(self.y)
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> tuple:
         return (
             {col: tensor[idx] for col, tensor in self.x_cat.items()},
             self.x_num[idx],

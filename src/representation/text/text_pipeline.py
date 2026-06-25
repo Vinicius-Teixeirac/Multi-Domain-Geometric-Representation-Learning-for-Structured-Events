@@ -67,7 +67,8 @@ class TextPipeline:
         return {k: v for k, v in enc.items()}
 
     @staticmethod
-    def _validate_df(df: pd.DataFrame):
+    def _validate_df(df: pd.DataFrame) -> None:
+        """Raise ValueError if df is missing the required 'text' or 'label' columns."""
         required = {"text", "label"}
         missing = required - set(df.columns)
         if missing:

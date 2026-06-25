@@ -12,23 +12,28 @@ from src.utils.constants import NULL_TOKEN
 
 logger = get_logger(__name__)
 
+__all__ = ["build_event_entities"]
+
 
 # ---------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------
 def _safe_str(val) -> str:
+    """Return str(val), or empty string for NaN/None."""
     if pd.isna(val):
         return ""
     return str(val)
 
 
 def _safe_float(val, decimals: int = 3) -> str:
+    """Return val rounded to `decimals` places as a string, or empty string for NaN/None."""
     if pd.isna(val):
         return ""
     return f"{round(float(val), decimals)}"
 
 
 def _concat_non_null(values: List[str]) -> str:
+    """Join non-empty, non-null tokens with '-' to form a composite entity ID."""
     non_null = [v for v in values if v not in {"", NULL_TOKEN}]
     return "-".join(non_null)
 
@@ -118,7 +123,8 @@ def build_event_entities(
             "ActionGeo_Long",
         ]
 
-        def build_geo_id(row):
+        def build_geo_id(row) -> str:
+            """Compose a geo entity ID from FeatureIDs and rounded lat/lon coordinates."""
             parts = []
             for c in geo_cols:
                 if "Lat" in c or "Long" in c:

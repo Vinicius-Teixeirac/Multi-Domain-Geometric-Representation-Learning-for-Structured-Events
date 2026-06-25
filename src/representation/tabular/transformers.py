@@ -11,6 +11,8 @@ from src.utils.experiments_logging import get_logger
 logger = get_logger(__name__)
 
 class IntegerDateParser:
+    """Parse an integer date column (e.g. 20150923) into a pandas datetime Series."""
+
     def __init__(self, fmt: str):
         self.fmt = fmt
         
@@ -46,6 +48,8 @@ class DateToCyclic:
         )
 
 class GeoToCartesian:
+    """Convert (lat, lon) degree columns to Earth-centered Cartesian (x, y, z) coordinates."""
+
     def __init__(self, prefix: str):
         self.prefix = prefix
         logger.debug(f"Converting geographic coordinates to Cartesian features with prefix {prefix}")
@@ -58,6 +62,7 @@ class GeoToCartesian:
         lat = np.radians(X.iloc[:, 0])
         lon = np.radians(X.iloc[:, 1])
 
+        # Standard spherical-to-Cartesian conversion on a unit sphere
         x = np.cos(lat) * np.cos(lon)
         y = np.cos(lat) * np.sin(lon)
         z = np.sin(lat)
@@ -73,6 +78,8 @@ class GeoToCartesian:
 
 
 class StandardScalerWrapper:
+    """Thin sklearn StandardScaler wrapper with JSON serialisation for pipeline persistence."""
+
     def __init__(self):
         self.scaler = StandardScaler()
 

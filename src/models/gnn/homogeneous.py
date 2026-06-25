@@ -6,6 +6,7 @@ from torch_geometric.nn import GINConv, SAGEConv, GATConv
 
 
 class HomogeneousGNN(nn.Module):
+    """Homogeneous GNN supporting SAGE, GIN, and GAT convolutions with configurable depth."""
 
     def __init__(
         self,
@@ -57,7 +58,7 @@ class HomogeneousGNN(nn.Module):
             )
         )
 
-    def forward(self, x, edge_index):
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         for conv in self.convs[:-1]:
             x = conv(x, edge_index)
             x = self._activation(x)
@@ -65,7 +66,8 @@ class HomogeneousGNN(nn.Module):
 
         return self.convs[-1](x, edge_index)
 
-    def _make_conv(self, in_dim, out_dim, *, last=False, heads=4):
+    def _make_conv(self, in_dim: int, out_dim: int, *, last: bool = False, heads: int = 4) -> nn.Module:
+        # last=True collapses GAT to a single head so the output dim equals out_dim exactly
         if self.conv_type == "sage":
             return SAGEConv(in_dim, out_dim)
 

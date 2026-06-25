@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import torch.nn as nn
 import yaml
 import time
 from pathlib import Path
@@ -26,11 +27,13 @@ logger = get_logger(__name__)
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------
-def count_trainable_parameters(model) -> int:
+def count_trainable_parameters(model: nn.Module) -> int:
+    """Return the total number of parameters that will receive gradients."""
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def make_json_serializable(obj):
+def make_json_serializable(obj: object) -> object:
+    """Recursively convert numpy scalars/arrays to native Python types for json.dump."""
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     if isinstance(obj, (np.integer,)):

@@ -16,8 +16,13 @@ from .edge_rules import build_event_component_edges
 class HeterogeneousEventGraphBuilder(GraphBuilder):
     """
     Builds a heterogeneous EVENT graph (event-inductive, split-wise).
+
+    Node types: event, actor1, actor2, geo, day.
+    Each event node connects to its actor1, actor2, geo, and day nodes via
+    typed edges; reverse edges are also added for bidirectional message passing.
     """
 
+    # Node type string constants (used as HeteroData keys throughout PyG)
     EVENT = "event"
     ACTOR1 = "actor1"
     ACTOR2 = "actor2"
@@ -53,16 +58,7 @@ class HeterogeneousEventGraphBuilder(GraphBuilder):
         self.label_col = label_col
 
     def build(self) -> HeteroData:
-        # --------------------------------------------------
-        # Load split
-        # --------------------------------------------------
-        # df = load_split(
-        #     data_dir=self.data_dir,
-        #     dataset_name=self.dataset_name,
-        #     split=self.split,
-        #     split_tag=self.split_tag,
-        # )
-
+        """Load entity parquet for the configured split and construct the HeteroData graph."""
         df = load_parquet(f"{self.split}_{self.split_tag}_entities.parquet", self.data_dir / self.dataset_name)
 
         # --------------------------------------------------

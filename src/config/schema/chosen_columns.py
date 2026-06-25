@@ -1,4 +1,13 @@
 # src/config/schema/chosen_columns.py
+"""
+Columns retained from the full GDELT event schema.
+
+Covers the six semantically relevant groups used by all model families:
+actor identity (Actor1/2 Name + 8 attribute codes), actor geo (Lat/Long/FeatureID
+for both actors and the action location), event date (Day), and label (QuadClass).
+"""
+
+__all__ = ["CHOSEN_COLUMNS"]
 
 CHOSEN_COLUMNS  = [
     "GlobalEventID",

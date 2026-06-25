@@ -1,7 +1,10 @@
 # src/testing/evaluate.py
 import json
 from pathlib import Path
+
 import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.utils.metrics import (
@@ -12,13 +15,17 @@ from src.config.paths import ARTIFACTS_DATA
 
 
 def evaluate_model(
-    model,
-    test_loader,
+    model: nn.Module,
+    test_loader: DataLoader,
     checkpoint_path: Path,
     dataset_name: str,
     device: str = "cpu",
     exp_id: str = "",
-):
+) -> tuple:
+    """Load the best checkpoint, run inference on the test set, and persist metrics.
+
+    Returns (metrics dict, confusion matrix tensor).
+    """
     # weights_only=False because checkpoints include optimizer state dict (non-tensor objects)
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])

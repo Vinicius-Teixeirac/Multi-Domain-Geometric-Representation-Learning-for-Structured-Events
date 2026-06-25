@@ -72,6 +72,11 @@ class TabularInputEncoder(nn.Module):
     # ------------------------------------------------------------------
     @staticmethod
     def _embedding_dim(cardinality: int, rule: str) -> int:
+        """Compute embedding size from cardinality using a heuristic rule.
+
+        Both rules are capped at 128 to prevent oversized embeddings for very
+        high-cardinality hash columns (e.g. FeatureID with 2^20 buckets).
+        """
         if rule == "sqrt":
             return max(1, min(128, int(math.sqrt(cardinality))))
         if rule == "log":

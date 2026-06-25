@@ -30,6 +30,8 @@ import torch.nn.functional as F
 
 from .riemannian import SphericalLinear, SphereReLU, log_north, exp_north
 
+_DEG_TO_RAD: float = torch.pi / 180.0  # conversion factor for geodetic coordinates
+
 
 # =========================================================================
 # S^2 helper
@@ -37,8 +39,8 @@ from .riemannian import SphericalLinear, SphereReLU, log_north, exp_north
 
 def _to_s2(lat_lon: torch.Tensor) -> torch.Tensor:
     """Convert (lat, lon) degrees -> unit S^2 coordinates in R^3."""
-    lat = lat_lon[:, 0] * (torch.pi / 180.0)
-    lon = lat_lon[:, 1] * (torch.pi / 180.0)
+    lat = lat_lon[:, 0] * _DEG_TO_RAD
+    lon = lat_lon[:, 1] * _DEG_TO_RAD
     return torch.stack([
         torch.cos(lat) * torch.cos(lon),
         torch.cos(lat) * torch.sin(lon),

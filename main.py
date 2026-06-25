@@ -47,12 +47,14 @@ def load_configs(paths_list: list[str]) -> list[dict]:
 
 
 def hash_config(cfg: dict) -> str:
+    """Return an 8-char MD5 hex digest of the config (excluding the file path key)."""
     hashable = {k: v for k, v in cfg.items() if k != "_config_path"}
     raw = json.dumps(hashable, sort_keys=True).encode()
     return hashlib.md5(raw).hexdigest()[:8]
 
 
-def discover_datasets(raw_root: Path):
+def discover_datasets(raw_root: Path) -> list[str]:
+    """Return sorted parquet stem names found in raw_root (one stem = one dataset)."""
     return sorted(
         p.stem for p in raw_root.iterdir()
         if p.is_file() and p.suffix == ".parquet"
@@ -60,6 +62,7 @@ def discover_datasets(raw_root: Path):
 
 
 def _split_tag(base_cfg: dict, seed: int) -> str:
+    """Construct a split tag that encodes the base tag and the random seed."""
     base = base_cfg.get("data", {}).get("split", {}).get("tag", "default")
     return f"{base}_s{seed}"
 

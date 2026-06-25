@@ -41,7 +41,8 @@ from src.utils.seed import set_seed
 logger = get_logger(__name__)
 
 
-def make_json_serializable(obj):
+def make_json_serializable(obj: object) -> object:
+    """Recursively convert numpy scalars/arrays to native Python types for json.dump."""
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     if isinstance(obj, (np.integer,)):

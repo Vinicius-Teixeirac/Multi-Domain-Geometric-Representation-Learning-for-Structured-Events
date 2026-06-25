@@ -61,7 +61,8 @@ def sample_dataframe_no_numeric():
     return df
 
 
-def expected_emb_dim(cardinality, rule="sqrt"):
+def expected_emb_dim(cardinality: int, rule: str = "sqrt") -> int:
+    """Mirror of TabularInputEncoder._embedding_dim for test assertions."""
     if rule == "sqrt":
         return max(1, min(128, int(math.sqrt(cardinality))))
     if rule == "log":
@@ -69,7 +70,8 @@ def expected_emb_dim(cardinality, rule="sqrt"):
     raise ValueError(rule)
 
 
-def expected_output_dim(cardinalities, numeric_dim, rule="sqrt"):
+def expected_output_dim(cardinalities: dict, numeric_dim: int, rule: str = "sqrt") -> int:
+    """Expected total encoder output dim: sum of embedding dims + numeric dim."""
     return numeric_dim + sum(
         expected_emb_dim(c, rule) for c in cardinalities.values()
     )

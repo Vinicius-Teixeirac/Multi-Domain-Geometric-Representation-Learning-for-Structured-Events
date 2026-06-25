@@ -186,6 +186,7 @@ class HashedOneHotEncoder:
         return self
 
     def _hash(self, value: str) -> int:
+        """Map value to a bucket index via MD5, modulo num_buckets."""
         return (
             int(hashlib.md5(value.encode("utf-8")).hexdigest(), 16)
             % self.num_buckets
@@ -194,6 +195,8 @@ class HashedOneHotEncoder:
     def _sign(self, value: str) -> float:
         if not self.signed:
             return 1.0
+        # Least-significant bit of Python's hash gives a cheap +/-1 sign,
+        # which reduces expected squared error from collisions (Weinberger et al., 2009).
         return 1.0 if (hash(value) & 1) == 0 else -1.0
 
     def transform(self, series: pd.Series) -> sparse.csr_matrix:

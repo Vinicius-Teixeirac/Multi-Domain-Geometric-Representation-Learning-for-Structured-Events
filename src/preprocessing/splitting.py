@@ -28,6 +28,11 @@ from src.utils.experiments_logging import get_logger
 logger = get_logger(__name__)
 
 SplitStrategy = Literal["random", "temporal"]
+"""random: shuffled stratified split; temporal: chronological split (requires time_column)."""
+
+# Minimum combined train+val size before we skip creating a separate validation set.
+# Below this the validation set would be too small to give reliable metric estimates.
+_MIN_TRAIN_FOR_VALID: int = 2000
 
 
 class Splitter:
@@ -185,9 +190,9 @@ class Splitter:
             )
             return
 
-        if len(df_train_valid) < 2000:
+        if len(df_train_valid) < _MIN_TRAIN_FOR_VALID:
             warnings.warn(
-                f"Train set has only {len(df_train_valid)} instances; "
+                f"Train set has only {len(df_train_valid)} instances (< {_MIN_TRAIN_FOR_VALID}); "
                 "skipping validation split."
             )
             logger.warning(

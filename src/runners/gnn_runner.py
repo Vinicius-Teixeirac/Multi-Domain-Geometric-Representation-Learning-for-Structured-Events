@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict
 
 import numpy as np
+import torch.nn as nn
 from torch.nn.parameter import UninitializedParameter
 
 from src.training.train import train_model
@@ -41,7 +42,8 @@ logger = get_logger(__name__)
 # Helpers
 # ------------------------------------------------------------------
 
-def count_trainable_parameters(model):
+def count_trainable_parameters(model: nn.Module) -> int:
+    """Return the total number of initialized, trainable parameters (skips lazy params)."""
     total = 0
     for p in model.parameters():
         if not p.requires_grad:
@@ -52,7 +54,8 @@ def count_trainable_parameters(model):
     return total
 
 
-def make_json_serializable(obj):
+def make_json_serializable(obj: object) -> object:
+    """Recursively convert numpy scalars/arrays to native Python types for json.dump."""
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     if isinstance(obj, (np.integer,)):

@@ -4,9 +4,10 @@ from src.config.schema.encoding_schema import ENCODING_SCHEMA
 from src.representation.tabular.encoding import SafeLabelEncoder, HashEncoder
 
 def load_categorical_cardinalities(
-    categorical_cols,
-    artifacts_dir,
+    categorical_cols: list,
+    artifacts_dir: Path,
 ) -> Dict[str, int]:
+    """Read fitted encoder artifacts and return {column: num_buckets_or_classes} for embedding layers."""
     cardinalities: Dict[str, int] = {}
 
     for col in categorical_cols:

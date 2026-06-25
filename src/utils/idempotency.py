@@ -6,6 +6,7 @@ from src.config.paths import ARTIFACTS_DATA, RESULTS_DIR
 
 
 def _find_checkpoint(dataset: str, exp_id: str) -> Optional[Path]:
+    """Return the best_model.pt path for exp_id under any model subdir, or None."""
     if not exp_id:
         return None
     base = ARTIFACTS_DATA / dataset / "models"
@@ -19,6 +20,7 @@ def _find_checkpoint(dataset: str, exp_id: str) -> Optional[Path]:
 
 
 def _find_results_json(dataset: str, exp_id: str) -> Optional[Path]:
+    """Scan RESULTS_DIR for a JSON file whose exp_id field matches, or return None."""
     if not exp_id:
         return None
     base = RESULTS_DIR / dataset

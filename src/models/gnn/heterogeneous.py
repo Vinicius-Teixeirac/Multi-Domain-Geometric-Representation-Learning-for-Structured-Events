@@ -8,6 +8,7 @@ from torch_geometric.data import HeteroData
 
 
 class HeterogeneousGNN(nn.Module):
+    """Heterogeneous GNN supporting RGCN, RGAT, and HAN convolutions on typed graphs."""
 
     def __init__(
         self,

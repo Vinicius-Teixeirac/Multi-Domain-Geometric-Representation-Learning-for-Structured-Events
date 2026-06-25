@@ -27,6 +27,8 @@ logger = get_logger(__name__)
 # Missing value handling (unchanged, but scoped properly)
 # ---------------------------------------------------------------------
 class MissingValueHandler:
+    """Apply per-column missing-value policies declared in COLUMNS_SCHEMA."""
+
     def __init__(self, columns_schema: dict):
         self.columns_schema = columns_schema
 
@@ -111,6 +113,7 @@ class DataCleaner:
     # Validation
     # ------------------------------------------------------------------
     def _validate_column_policy(self) -> None:
+        """Raise if any requested column is not in the official GDELT event codebook."""
         unknown = set(self.selected_columns) - set(GDELT_EVENT_COLUMNS)
         if unknown:
             raise ValueError(

@@ -22,7 +22,7 @@ ENCODING_SCHEMA = {
         "type": "temporal",
         "method": "cyclical",
         "params": {
-            "period": 365
+            "period": 365  # calendar days per year (GDELT Day column is YYYYMMDD)
         }
     },
 
@@ -34,14 +34,14 @@ ENCODING_SCHEMA = {
         "type": "categorical",
         "method": "hash",
         "params": {
-            "hash_dim": 65536
+            "hash_dim": 65536  # 2^16 buckets; actor names are high-cardinality but not unique
         }
     },
     "Actor2Name": {
         "type": "categorical",
         "method": "hash",
         "params": {
-            "hash_dim": 65536
+            "hash_dim": 65536  # 2^16 buckets
         }
     },
 
@@ -49,21 +49,21 @@ ENCODING_SCHEMA = {
         "type": "categorical",
         "method": "hash",
         "params": {
-            "hash_dim": 1048576
+            "hash_dim": 1048576  # 2^20 buckets; GeoNames FeatureID is a very high-cardinality place code
         }
     },
     "Actor2Geo_FeatureID": {
         "type": "categorical",
         "method": "hash",
         "params": {
-            "hash_dim": 1048576
+            "hash_dim": 1048576  # 2^20 buckets; GeoNames FeatureID is a very high-cardinality place code
         }
     },
     "ActionGeo_FeatureID": {
         "type": "categorical",
         "method": "hash",
         "params": {
-            "hash_dim": 1048576
+            "hash_dim": 1048576  # 2^20 buckets; GeoNames FeatureID is a very high-cardinality place code
         }
     },
 

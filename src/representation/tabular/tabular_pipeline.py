@@ -59,6 +59,7 @@ class TabularPipeline:
     # Public API
     # ------------------------------------------------------------------
     def run(self) -> None:
+        """Fit encoders on the train split and write encoded features for all splits."""
         logger.info("Loading splits...")
         train = self._load_split("train")
         test = self._load_split("test")
@@ -96,6 +97,7 @@ class TabularPipeline:
     # Validation
     # ------------------------------------------------------------------
     def _validate_columns(self, df: pd.DataFrame) -> None:
+        """Raise if the dataframe is missing schema columns or if encoding/kind pairs are incompatible."""
         schema_cols = set(COLUMNS_SCHEMA.keys())
         df_cols = set(df.columns)
 
@@ -141,6 +143,7 @@ class TabularPipeline:
     # Core transform logic
     # ------------------------------------------------------------------
     def _fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Fit encoders on df and return the encoded DataFrame (train split only)."""
         frames: List[pd.DataFrame] = []
 
         for col in df.columns:
@@ -159,6 +162,7 @@ class TabularPipeline:
         return pd.concat(frames, axis=1)
 
     def _transform(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Apply already-fitted encoders to df (val/test splits)."""
         frames: List[pd.DataFrame] = []
 
         for col in df.columns:
@@ -179,6 +183,7 @@ class TabularPipeline:
     # Column-level logic
     # ------------------------------------------------------------------
     def _fit_transform_column(self, df: pd.DataFrame, col: str) -> pd.DataFrame:
+        """Fit the appropriate encoder for col (determined by ENCODING_SCHEMA) and return encoded output."""
         cfg = ENCODING_SCHEMA.get(col)
         series = df[col]
 

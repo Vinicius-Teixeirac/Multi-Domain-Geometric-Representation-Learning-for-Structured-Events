@@ -60,6 +60,7 @@ class EventDataModule:
     # Setup
     # ------------------------------------------------------------------
     def setup(self) -> None:
+        """Load encoded feature parquets and infer feature groups and cardinalities."""
         # --- load encoded feature splits ---
         self.train_df = load_parquet(
             f"train_{self.split_tag}_features.parquet",

@@ -2,7 +2,8 @@
 import logging
 from pathlib import Path
 
-def get_logger(name: str = "gdelt_pipeline", log_to_file: bool = True):
+def get_logger(name: str = "gdelt_pipeline", log_to_file: bool = True) -> logging.Logger:
+    """Return a named logger with console (and optional file) handlers, created only once."""
     logger = logging.getLogger(name)
 
     if not logger.handlers:  # Prevent duplicate handlers during imports

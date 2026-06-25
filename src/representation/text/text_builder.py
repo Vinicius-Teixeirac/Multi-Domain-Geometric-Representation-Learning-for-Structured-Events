@@ -5,13 +5,15 @@ from typing import Optional
 
 from src.utils.constants import INTERACTION_VERBS
 
-def translate_code(code, dictionary) -> Optional[str]:
+def translate_code(code: object, dictionary: dict) -> Optional[str]:
+    """Return the human-readable label for a CAMEO code, or None if missing/null."""
     if code is None or pd.isna(code) or code == "__NULL__":
         return None
     return dictionary.get(code)
 
 
-def format_day(day) -> Optional[str]:
+def format_day(day: object) -> Optional[str]:
+    """Convert a GDELT YYYYMMDD or YYYYMM integer to a readable month-year string."""
     if day is None or pd.isna(day):
         return None
 
@@ -29,10 +31,17 @@ def format_day(day) -> Optional[str]:
 
 
 def normalize_name(name: str) -> str:
+    """Title-case a name string for consistent display."""
     return str(name).title()
 
 
-def verbalize_actor(row, prefix: str, dictionaries: dict) -> Optional[str]:
+def verbalize_actor(row: object, prefix: str, dictionaries: dict) -> Optional[str]:
+    """Build a natural-language actor phrase from GDELT actor columns.
+
+    Layers name, role, descriptors (group/religion/ethnicity), home country,
+    and current location in that precedence order.
+    Returns None if the actor name is missing or null.
+    """
     name = row.get(f"{prefix}Name")
     if pd.isna(name) or name == "__NULL__":
         return None

@@ -57,6 +57,7 @@ def log_north(x: torch.Tensor) -> torch.Tensor:
     Returns:
         (*, d) tangent vectors at p  [last coord = 0]
     """
+    # 1e-7 guards against acos(+-1) which gives NaN gradients, and against division by zero
     inner  = x[..., -1:].clamp(-1 + 1e-7, 1 - 1e-7)           # (*, 1) = cos theta
     u_body = x[..., :-1]                                         # (*, d-1) = sin theta * direction
     u_norm = u_body.norm(dim=-1, keepdim=True).clamp_min(1e-7)  # (*, 1) = |sin theta|
@@ -78,7 +79,7 @@ def exp_north(v: torch.Tensor) -> torch.Tensor:
     Returns:
         (*, d) points on S^{d-1}
     """
-    v_norm = v.norm(dim=-1, keepdim=True).clamp_min(1e-7)       # (*, 1)
+    v_norm = v.norm(dim=-1, keepdim=True).clamp_min(1e-7)       # (*, 1) - avoid 0/0 when v is the zero vector
     body   = torch.sin(v_norm) / v_norm * v[..., :-1]           # (*, d-1)
     last   = torch.cos(v_norm)                                   # (*, 1)
     return torch.cat([body, last], dim=-1)                       # (*, d)
