@@ -15,7 +15,7 @@ from src.utils.constants import NUM_QUAD_CLASSES
 from src.config.paths import ARTIFACTS_DATA, RESULTS_DIR
 from src.utils.experiments_logging import get_logger
 from src.utils.idempotency import should_skip
-from src.utils.runner_utils import count_trainable_parameters, load_yaml_config, make_json_serializable, save_runner_results
+from src.utils.runner_utils import collect_gpu_info, count_trainable_parameters, load_yaml_config, make_json_serializable, save_runner_results
 
 logger = get_logger(__name__)
 
@@ -29,6 +29,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     start_time = time.perf_counter()
+    gpu_info = collect_gpu_info(cfg["training"]["device"])
 
     exp_id = cfg.get("exp_id", "")
 
@@ -133,6 +134,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
         },
         "metrics": make_json_serializable(metrics),
         "confusion_matrix": make_json_serializable(confusion),
+        "hardware": gpu_info,
     }
 
     save_runner_results(results, results_dir, "mlp")

@@ -33,7 +33,7 @@ from src.utils.class_weights import compute_class_weights
 from src.utils.constants import NUM_QUAD_CLASSES
 from src.utils.experiments_logging import get_logger
 from src.utils.idempotency import should_skip
-from src.utils.runner_utils import count_trainable_parameters, make_json_serializable, save_runner_results
+from src.utils.runner_utils import collect_gpu_info, count_trainable_parameters, make_json_serializable, save_runner_results
 from src.utils.seed import set_seed
 
 logger = get_logger(__name__)
@@ -61,6 +61,7 @@ def run_multi_domain(
     """
     set_seed(seed)
     start_time = time.perf_counter()
+    gpu_info = collect_gpu_info(cfg["training"].get("device", "cpu"))
 
     train_cfg = cfg["training"]
     model_cfg = cfg["model"]
@@ -202,6 +203,7 @@ def run_multi_domain(
         },
         "metrics": make_json_serializable(metrics),
         "confusion_matrix": make_json_serializable(confusion),
+        "hardware": gpu_info,
     }
 
     results_path = save_runner_results(results, results_dir, "multi_domain")

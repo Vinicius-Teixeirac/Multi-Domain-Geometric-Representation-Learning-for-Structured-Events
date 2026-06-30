@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import numpy as np
 import yaml
@@ -14,11 +16,66 @@ import torch.nn as nn
 from torch.nn.parameter import UninitializedParameter
 
 __all__ = [
+    "collect_gpu_info",
     "count_trainable_parameters",
     "load_yaml_config",
     "make_json_serializable",
     "save_runner_results",
 ]
+
+
+def collect_gpu_info(device: str) -> Dict[str, Any]:
+    """Return GPU name, index, total memory, and isolation status for the given device."""
+    if not device.startswith("cuda"):
+        return {
+            "gpu_name": None,
+            "gpu_index": None,
+            "gpu_total_memory_mb": None,
+            "isolated": None,
+        }
+    try:
+        import torch
+        gpu_index = int(device.split(":")[1]) if ":" in device else 0
+        props = torch.cuda.get_device_properties(gpu_index)
+        return {
+            "gpu_name": props.name,
+            "gpu_index": gpu_index,
+            "gpu_total_memory_mb": props.total_memory // (1024 * 1024),
+            "isolated": _gpu_isolated(gpu_index),
+        }
+    except Exception:
+        return {
+            "gpu_name": None,
+            "gpu_index": None,
+            "gpu_total_memory_mb": None,
+            "isolated": None,
+        }
+
+
+def _gpu_isolated(gpu_index: int) -> Optional[bool]:
+    """True if no other compute processes share this GPU; None if undetermined."""
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-compute-apps=pid",
+                "--format=csv,noheader,nounits",
+                "-i", str(gpu_index),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode != 0:
+            return None
+        pids = [
+            int(line.strip())
+            for line in result.stdout.strip().splitlines()
+            if line.strip().isdigit()
+        ]
+        return all(p == os.getpid() for p in pids)
+    except Exception:
+        return None
 
 
 def load_yaml_config(path: str) -> Dict[str, Any]:

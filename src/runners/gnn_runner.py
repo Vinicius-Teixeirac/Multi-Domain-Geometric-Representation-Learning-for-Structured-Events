@@ -31,7 +31,7 @@ from src.representation.graph.heterogeneous.loaders import make_hetero_gnn_loade
 from src.models.tabular_encoder import TabularInputEncoder
 
 from src.utils.experiments_logging import get_logger
-from src.utils.runner_utils import count_trainable_parameters, make_json_serializable, save_runner_results
+from src.utils.runner_utils import collect_gpu_info, count_trainable_parameters, make_json_serializable, save_runner_results
 
 logger = get_logger(__name__)
 
@@ -45,6 +45,7 @@ def run_gnn(cfg: Dict) -> Dict:
     """
 
     start_time = time.perf_counter()
+    gpu_info = collect_gpu_info(cfg["training"]["device"])
 
     dataset = cfg["dataset"]
     model_name = cfg["model"]["name"]
@@ -310,6 +311,7 @@ def run_gnn(cfg: Dict) -> Dict:
         },
         "metrics": make_json_serializable(metrics),
         "confusion_matrix": make_json_serializable(confusion),
+        "hardware": gpu_info,
     }
 
     save_runner_results(results, results_dir, "gnn")
