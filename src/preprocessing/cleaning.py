@@ -33,6 +33,19 @@ class MissingValueHandler:
         self.columns_schema = columns_schema
 
     def apply(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply per-column missing-value policies and return the modified DataFrame.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Input dataframe containing columns declared in columns_schema.
+
+        Returns
+        -------
+        pd.DataFrame
+            Copy of df with missing values handled according to each column's policy.
+        """
         df = df.copy()
 
         for col, meta in self.columns_schema.items():
@@ -135,6 +148,7 @@ class DataCleaner:
     # Loading
     # ------------------------------------------------------------------
     def load_raw(self, filename: str) -> pd.DataFrame:
+        """Load a raw parquet file from the configured input directory."""
         logger.info(f"Loading raw data file '{filename}' from {self.input_dir}")
         df = load_parquet(filename, self.input_dir)
         logger.info(f"Loaded dataframe with shape {df.shape}")
@@ -144,6 +158,7 @@ class DataCleaner:
     # Core steps
     # ------------------------------------------------------------------
     def select_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Return a copy of df containing only the configured selected columns."""
         missing = set(self.selected_columns) - set(df.columns)
         if missing:
             raise ValueError(
@@ -153,6 +168,7 @@ class DataCleaner:
         return df[self.selected_columns].copy()
 
     def cast_types(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Cast each column to its canonical dtype (Int64, float32, or string)."""
         df = df.copy()
 
         for col in INTEGER_COLUMNS:
@@ -211,6 +227,7 @@ class DataCleaner:
     # Saving
     # ------------------------------------------------------------------
     def save(self, df: pd.DataFrame, filename: str) -> Path:
+        """Write df as processed_{filename}.parquet in the output directory; return the path."""
         path = self.output_dir / f"processed_{filename}.parquet"
         df.to_parquet(path, index=False)
         logger.info(f"Saving processed data to {path}")
@@ -224,6 +241,26 @@ class DataCleaner:
         sample_name: str,
         target_cols: Optional[List[str]] = None,
     ) -> Path:
+        """
+        Execute the full cleaning pipeline and return the output path.
+
+        Steps: load raw -> select columns -> cast types ->
+        drop/normalise targets (optional) -> handle missing values -> save.
+
+        Parameters
+        ----------
+        sample_name : str
+            Filename (without extension) of the raw parquet to process.
+        target_cols : list[str] or None
+            Columns treated as classification targets. Rows with missing
+            target values are dropped and labels are shifted to be
+            zero-based before saving.
+
+        Returns
+        -------
+        Path
+            Path to the written processed parquet file.
+        """
         logger.info(f"Running data cleaning pipeline for '{sample_name}'")
         df = self.load_raw(sample_name)
 

@@ -19,6 +19,27 @@ class HomogeneousGNN(nn.Module):
         heads: int = 4,
         encoder=None,
     ):
+        """
+        Parameters
+        ----------
+        conv_type : str
+            Graph convolution type: 'sage', 'gin', or 'gat'.
+        in_channels : int
+            Input feature dimension per node.
+        hidden_channels : int
+            Width of hidden GNN layers.
+        out_channels : int
+            Output dimension (number of classes for direct classification).
+        num_layers : int
+            Total number of convolution layers (must be >= 2).
+        dropout : float
+            Dropout probability applied between layers.
+        heads : int
+            Number of attention heads (GAT only; ignored by SAGE and GIN).
+        encoder : nn.Module or None
+            Optional tabular input encoder; not used by the forward method
+            directly (applied by the caller before forward if needed).
+        """
         super().__init__()
         self.encoder = encoder
 
@@ -59,6 +80,18 @@ class HomogeneousGNN(nn.Module):
         )
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
+        """
+        Run message passing and return node-level logits.
+
+        Parameters
+        ----------
+        x : torch.Tensor of shape (N, in_channels)
+        edge_index : torch.Tensor of shape (2, E)
+
+        Returns
+        -------
+        torch.Tensor of shape (N, out_channels)
+        """
         for conv in self.convs[:-1]:
             x = conv(x, edge_index)
             x = self._activation(x)
@@ -67,7 +100,7 @@ class HomogeneousGNN(nn.Module):
         return self.convs[-1](x, edge_index)
 
     def _make_conv(self, in_dim: int, out_dim: int, *, last: bool = False, heads: int = 4) -> nn.Module:
-        # last=True collapses GAT to a single head so the output dim equals out_dim exactly
+        """Instantiate a single convolution layer of the configured type."""
         if self.conv_type == "sage":
             return SAGEConv(in_dim, out_dim)
 
@@ -87,12 +120,20 @@ class HomogeneousGNN(nn.Module):
         raise ValueError(f"Unknown conv_type '{self.conv_type}'")
 
     def _hidden_dim(self, hidden_channels, heads):
+        """Return the effective hidden dimension after a non-final layer (GAT multiplies by heads)."""
         return hidden_channels * heads if self.conv_type == "gat" else hidden_channels
 
     def _activation(self, x):
+        """Apply the appropriate activation for the current conv type (ELU for GAT, ReLU otherwise)."""
         return F.elu(x) if self.conv_type == "gat" else F.relu(x)
 
     def forward_batch(self, batch, device):
+        """
+        Move a PyG batch to device, run forward, and return (logits, targets).
+
+        Slices logits and targets to batch_size when NeighborLoader is used
+        (seed nodes only, not sampled neighbourhood nodes).
+        """
         batch = batch.to(device)
 
         if hasattr(batch, "x"):

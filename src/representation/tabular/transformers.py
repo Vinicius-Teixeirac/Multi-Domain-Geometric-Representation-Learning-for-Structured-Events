@@ -14,25 +14,53 @@ class IntegerDateParser:
     """Parse an integer date column (e.g. 20150923) into a pandas datetime Series."""
 
     def __init__(self, fmt: str):
+        """
+        Parameters
+        ----------
+        fmt : str
+            strptime format string for parsing (e.g. '%Y%m%d').
+        """
         self.fmt = fmt
-        
 
     def fit(self, X):
+        """No-op; returns self for API uniformity."""
         return self
 
     def transform(self, X: pd.Series) -> pd.Series:
+        """Convert an integer date Series to pandas datetime using self.fmt."""
         logger.debug(f"Parsing integer date column '{X.name}' with format '{self.fmt}'")
         return pd.to_datetime(X.astype(str), format=self.fmt)
 
 
 class DateToCyclic:
+    """Map a numeric day-of-year (or similar periodic) series to sin/cos features."""
+
     def __init__(self, period: int):
+        """
+        Parameters
+        ----------
+        period : int
+            The full cycle length (e.g. 365 for annual, 7 for weekly).
+        """
         self.period = period
 
     def fit(self, X):
+        """No-op; returns self for API uniformity."""
         return self
 
     def transform(self, X: pd.Series) -> pd.DataFrame:
+        """
+        Return a two-column DataFrame with sin and cos cyclic features.
+
+        Parameters
+        ----------
+        X : pd.Series
+            Numeric values within [1, period].
+
+        Returns
+        -------
+        pd.DataFrame with columns '{X.name}_sin' and '{X.name}_cos'.
+        """
         values = X.astype(float)
 
         sin = np.sin(2 * np.pi * values / self.period)
@@ -55,9 +83,23 @@ class GeoToCartesian:
         logger.debug(f"Converting geographic coordinates to Cartesian features with prefix {prefix}")
 
     def fit(self, X):
+        """No-op; returns self for API uniformity."""
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Convert (lat, lon) degree columns to Cartesian (x, y, z) on a unit sphere.
+
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Two-column DataFrame; first column is latitude, second is longitude
+            (both in degrees).
+
+        Returns
+        -------
+        pd.DataFrame with columns '{prefix}_geo_x', '{prefix}_geo_y', '{prefix}_geo_z'.
+        """
         logger.debug(f"Input columns: {list(X.columns)}")
         lat = np.radians(X.iloc[:, 0])
         lon = np.radians(X.iloc[:, 1])
@@ -84,14 +126,17 @@ class StandardScalerWrapper:
         self.scaler = StandardScaler()
 
     def fit(self, X: pd.Series):
+        """Fit the StandardScaler on X; return self."""
         self.scaler.fit(X.to_numpy().reshape(-1, 1))
         return self
 
     def transform(self, X: pd.Series) -> pd.Series:
+        """Standardise X using the fitted scaler; return a Series with the same name and index."""
         values = self.scaler.transform(X.to_numpy().reshape(-1, 1)).ravel()
         return pd.Series(values, name=X.name, index=X.index)
 
     def save(self, path: Path):
+        """Serialise scaler parameters (mean, scale, var) to a JSON file at path."""
         path.write_text(
             json.dumps(
                 {
@@ -105,6 +150,7 @@ class StandardScalerWrapper:
 
     @classmethod
     def load(cls, path: Path) -> "StandardScalerWrapper":
+        """Restore a previously saved StandardScalerWrapper from a JSON file."""
         data = json.loads(path.read_text())
         obj = cls()
         obj.scaler.mean_ = np.array(data["mean"])

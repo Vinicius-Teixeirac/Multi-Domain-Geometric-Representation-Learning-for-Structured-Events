@@ -106,6 +106,14 @@ class SphericalLinear(nn.Module):
     """
 
     def __init__(self, in_dim: int, out_dim: int):
+        """
+        Parameters
+        ----------
+        in_dim : int
+            Input hypersphere dimension d; input lives on S^{d-1}.
+        out_dim : int
+            Output hypersphere dimension; output lives on S^{out_dim-1}.
+        """
         super().__init__()
         tan_in  = in_dim  - 1
         tan_out = out_dim - 1
@@ -115,6 +123,18 @@ class SphericalLinear(nn.Module):
             nn.init.orthogonal_(self.weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Map points on S^{in-1} to S^{out-1} via log -> linear -> exp.
+
+        Parameters
+        ----------
+        x : torch.Tensor of shape (B, in_dim)
+            Unit vectors on S^{in_dim-1}.
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim) on S^{out_dim-1}
+        """
         v_tan = log_north(x)[..., :-1]                # (B, in-1)
         u_tan = v_tan @ self.weight.T + self.bias      # (B, out-1)
         u     = torch.cat([u_tan,
@@ -131,6 +151,18 @@ class SphereReLU(nn.Module):
     """
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Apply ReLU in the tangent space and return a point on the same sphere.
+
+        Parameters
+        ----------
+        x : torch.Tensor of shape (B, d)
+            Unit vectors on S^{d-1}.
+
+        Returns
+        -------
+        torch.Tensor of shape (B, d) on S^{d-1}
+        """
         v_tan = log_north(x)[..., :-1]                 # (B, d-1)
         v_tan = F.relu(v_tan)
         v     = torch.cat([v_tan,

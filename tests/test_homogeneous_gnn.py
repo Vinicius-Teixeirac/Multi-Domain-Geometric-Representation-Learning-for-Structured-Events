@@ -12,6 +12,14 @@ OUT_CHANNELS = 4
 
 @pytest.fixture
 def edge_index():
+    """
+    Random homogeneous edge index with 40 edges over ``NUM_NODES`` nodes.
+
+    Returns
+    -------
+    torch.Tensor
+        Shape ``(2, 40)`` long tensor of source/destination node indices.
+    """
     src = torch.randint(0, NUM_NODES, (40,))
     dst = torch.randint(0, NUM_NODES, (40,))
     return torch.stack([src, dst])
@@ -19,12 +27,14 @@ def edge_index():
 
 @pytest.fixture
 def x():
+    """Random node feature matrix of shape ``(NUM_NODES, IN_CHANNELS)``."""
     return torch.randn(NUM_NODES, IN_CHANNELS)
 
 
 @pytest.mark.parametrize("conv_type", ["sage", "gin", "gat"])
 class TestHomogeneousGNN:
     def test_construction(self, conv_type):
+        """Model instantiates with the correct hidden and output dimensions."""
         model = HomogeneousGNN(
             conv_type=conv_type,
             in_channels=IN_CHANNELS,
@@ -36,6 +46,7 @@ class TestHomogeneousGNN:
         assert model.out_dim == OUT_CHANNELS
 
     def test_forward_shape(self, conv_type, x, edge_index):
+        """Forward pass produces float32 logits of shape ``(NUM_NODES, OUT_CHANNELS)``."""
         model = HomogeneousGNN(
             conv_type=conv_type,
             in_channels=IN_CHANNELS,

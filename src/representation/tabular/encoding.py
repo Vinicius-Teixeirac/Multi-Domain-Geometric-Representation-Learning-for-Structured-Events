@@ -28,6 +28,12 @@ class SafeLabelEncoder:
     """
 
     def __init__(self, dtype: str = "int32"):
+        """
+        Parameters
+        ----------
+        dtype : str
+            NumPy dtype string for the output integer array (e.g. 'int32', 'int64').
+        """
         self.mapping: dict[Any, int] = {}
         self.unk_token = 0
         self.num_classes_: int = 0
@@ -36,9 +42,23 @@ class SafeLabelEncoder:
 
     @property
     def is_fitted(self) -> bool:
+        """True if the encoder has been fitted; False otherwise."""
         return self._fitted
 
     def fit(self, series: pd.Series) -> "SafeLabelEncoder":
+        """
+        Fit the encoder on unique non-null values in series.
+
+        Parameters
+        ----------
+        series : pd.Series
+            Training column values.
+
+        Returns
+        -------
+        SafeLabelEncoder
+            Self (for method chaining).
+        """
         if self._fitted:
             raise RuntimeError("SafeLabelEncoder is already fitted.")
         uniques = sorted(series.dropna().unique())
@@ -49,6 +69,18 @@ class SafeLabelEncoder:
         return self
 
     def transform(self, series: pd.Series) -> pd.Series:
+        """
+        Map values to integer codes; unseen values are mapped to UNK (0).
+
+        Parameters
+        ----------
+        series : pd.Series
+            Column to encode.
+
+        Returns
+        -------
+        pd.Series of dtype self.dtype
+        """
         if not self._fitted:
             raise RuntimeError("SafeLabelEncoder must be fitted before transform().")
 
@@ -60,6 +92,7 @@ class SafeLabelEncoder:
         )
 
     def save(self, path: Path):
+        """Serialise the fitted mapping and dtype to a JSON file at path."""
         if not self._fitted:
             raise RuntimeError("Cannot save an unfitted SafeLabelEncoder.")
 
@@ -76,6 +109,7 @@ class SafeLabelEncoder:
 
     @classmethod
     def load(cls, path: Path) -> "SafeLabelEncoder":
+        """Restore a previously saved SafeLabelEncoder from a JSON file."""
         data = json.loads(path.read_text())
         obj = cls(dtype=data.get("dtype", "int32"))
         obj.mapping = data["mapping"]
@@ -97,19 +131,40 @@ class HashEncoder:
     """
 
     def __init__(self, num_buckets: int, dtype: str = "int32"):
+        """
+        Parameters
+        ----------
+        num_buckets : int
+            Number of hash buckets (output vocabulary size).
+        dtype : str
+            NumPy dtype string for the output array (e.g. 'int32').
+        """
         self.num_buckets = num_buckets
         self.dtype = dtype
         logger.info(f"Initialized HashEncoder with {self.num_buckets} buckets")
 
     @property
     def is_fitted(self) -> bool:
-        # Stateless by design
+        """Always True — HashEncoder is stateless."""
         return True
 
     def fit(self, series: pd.Series) -> "HashEncoder":
+        """No-op; HashEncoder is stateless. Returns self for API uniformity."""
         return self
 
     def transform(self, series: pd.Series) -> pd.Series:
+        """
+        Hash each value to a bucket index via MD5 modulo num_buckets.
+
+        Parameters
+        ----------
+        series : pd.Series
+            Column to encode. NaN is treated as the string '__nan__'.
+
+        Returns
+        -------
+        pd.Series of dtype self.dtype
+        """
         values = (
             series.fillna("__nan__")
             .astype(str)
@@ -126,6 +181,7 @@ class HashEncoder:
         return values
 
     def save(self, path: Path):
+        """Serialise num_buckets and dtype to a JSON file at path."""
         path.write_text(
             json.dumps(
                 {
@@ -139,6 +195,7 @@ class HashEncoder:
 
     @classmethod
     def load(cls, path: Path) -> "HashEncoder":
+        """Restore a previously saved HashEncoder from a JSON file."""
         data = json.loads(path.read_text())
         return cls(
             num_buckets=data["num_buckets"],
@@ -167,6 +224,17 @@ class HashedOneHotEncoder:
         signed: bool = True,
         dtype: np.dtype = np.float32,
     ):
+        """
+        Parameters
+        ----------
+        num_buckets : int
+            Width of the one-hot output vector.
+        signed : bool
+            When True, apply a +/-1 sign to reduce expected squared error
+            from collisions (Weinberger et al., 2009).
+        dtype : np.dtype
+            Output dtype of the sparse matrix values.
+        """
         self.num_buckets = num_buckets
         self.signed = signed
         self.dtype = dtype
@@ -179,10 +247,11 @@ class HashedOneHotEncoder:
 
     @property
     def is_fitted(self) -> bool:
-        # Stateless by design
+        """Always True — HashedOneHotEncoder is stateless."""
         return True
 
     def fit(self, series: pd.Series) -> "HashedOneHotEncoder":
+        """No-op; HashedOneHotEncoder is stateless. Returns self for API uniformity."""
         return self
 
     def _hash(self, value: str) -> int:
@@ -193,6 +262,7 @@ class HashedOneHotEncoder:
         )
 
     def _sign(self, value: str) -> float:
+        """Return +1 or -1 based on the least-significant bit of Python's hash."""
         if not self.signed:
             return 1.0
         # Least-significant bit of Python's hash gives a cheap +/-1 sign,
@@ -200,6 +270,18 @@ class HashedOneHotEncoder:
         return 1.0 if (hash(value) & 1) == 0 else -1.0
 
     def transform(self, series: pd.Series) -> sparse.csr_matrix:
+        """
+        Encode series as a sparse (N, num_buckets) signed one-hot matrix.
+
+        Parameters
+        ----------
+        series : pd.Series
+            Column to encode. NaN is treated as '__nan__'.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix of shape (N, num_buckets)
+        """
         series = series.fillna("__nan__").astype(str)
 
         n_samples = len(series)
@@ -224,6 +306,7 @@ class HashedOneHotEncoder:
         )
 
     def save(self, path: Path):
+        """Serialise num_buckets and signed flag to a JSON file at path."""
         path.write_text(
             json.dumps(
                 {
@@ -235,6 +318,7 @@ class HashedOneHotEncoder:
 
     @classmethod
     def load(cls, path: Path) -> "HashedOneHotEncoder":
+        """Restore a previously saved HashedOneHotEncoder from a JSON file."""
         data = json.loads(path.read_text())
         return cls(
             num_buckets=data["num_buckets"],

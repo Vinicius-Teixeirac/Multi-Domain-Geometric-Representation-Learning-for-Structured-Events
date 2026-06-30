@@ -37,6 +37,20 @@ class EventDataModule:
         num_workers: int = 0,
         target_col: str = "QuadClass",
     ):
+        """
+        Parameters
+        ----------
+        dataset_name : str
+            Dataset directory name (used to locate feature parquets and artifacts).
+        split_tag : str
+            Split regime identifier.
+        batch_size : int
+            DataLoader mini-batch size.
+        num_workers : int
+            DataLoader worker processes.
+        target_col : str
+            Name of the classification target column.
+        """
         self.dataset_name = dataset_name
         self.split_tag = split_tag
         self.batch_size = batch_size
@@ -117,6 +131,7 @@ class EventDataModule:
         self.numeric_dim = len(self.numeric_cols)
 
     def _infer_num_classes(self) -> None:
+        """Set num_classes from the project constant (4 CAMEO QuadClasses)."""
         self.num_classes = NUM_QUAD_CLASSES
 
 
@@ -157,6 +172,7 @@ class EventDataModule:
     # Dataloaders
     # ------------------------------------------------------------------
     def _make_loader(self, df: pd.DataFrame, shuffle: bool) -> DataLoader:
+        """Wrap df in an EventDataset and return a DataLoader with the configured batch size."""
         dataset = EventDataset(
             dataframe=df,
             categorical_cols=self.categorical_cols,
@@ -172,12 +188,15 @@ class EventDataModule:
         )
 
     def train_dataloader(self) -> DataLoader:
+        """Return a shuffled DataLoader for the training split."""
         return self._make_loader(self.train_df, shuffle=True)
 
     def val_dataloader(self) -> Optional[DataLoader]:
+        """Return a DataLoader for the validation split, or None if no validation split exists."""
         if self.valid_df is None:
             return None
         return self._make_loader(self.valid_df, shuffle=False)
 
     def test_dataloader(self) -> DataLoader:
+        """Return a DataLoader for the test split."""
         return self._make_loader(self.test_df, shuffle=False)

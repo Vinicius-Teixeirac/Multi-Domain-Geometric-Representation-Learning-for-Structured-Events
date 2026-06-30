@@ -17,11 +17,20 @@ BATCH_SIZE = 8
 
 @pytest.fixture
 def cardinalities():
+    """Return a copy of CATEGORICAL_CARDINALITIES for use in encoder tests."""
     return dict(CATEGORICAL_CARDINALITIES)
 
 
 @pytest.fixture
 def sample_x_cat():
+    """
+    Random integer tensors for each categorical column (shape ``(BATCH_SIZE,)``).
+
+    Returns
+    -------
+    dict[str, torch.Tensor]
+        Mapping from column name to a 1-D long tensor of valid category indices.
+    """
     return {
         name: torch.randint(0, card, (BATCH_SIZE,))
         for name, card in CATEGORICAL_CARDINALITIES.items()
@@ -30,11 +39,28 @@ def sample_x_cat():
 
 @pytest.fixture
 def sample_x_num():
+    """
+    Random numeric feature tensor of shape ``(BATCH_SIZE, NUMERIC_DIM)``.
+
+    Returns
+    -------
+    torch.Tensor
+        Float32 tensor drawn from a standard normal distribution.
+    """
     return torch.randn(BATCH_SIZE, NUMERIC_DIM)
 
 
 @pytest.fixture
 def sample_dataframe():
+    """
+    Small synthetic DataFrame with two categorical columns, four numeric columns,
+    and a QuadClass label column (32 rows, seed 0).
+
+    Returns
+    -------
+    pandas.DataFrame
+        Columns: col_a, col_b, num_0–num_3, QuadClass.
+    """
     rng = np.random.default_rng(0)
     n = 32
     df = pd.DataFrame({
@@ -51,6 +77,17 @@ def sample_dataframe():
 
 @pytest.fixture
 def sample_dataframe_no_numeric():
+    """
+    Small synthetic DataFrame with only categorical and label columns (16 rows).
+
+    Used to verify that datasets and encoders handle the zero-numeric-features
+    edge case correctly.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Columns: col_a, col_b, QuadClass.
+    """
     rng = np.random.default_rng(0)
     n = 16
     df = pd.DataFrame({

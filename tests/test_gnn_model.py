@@ -25,6 +25,7 @@ METADATA = (NODE_TYPES, EDGE_TYPES)
 
 class TestHomogeneousGNNForwardBatch:
     def test_forward_batch_with_features(self):
+        """``forward_batch`` returns full-graph logits and targets when node features are present."""
         model = HomogeneousGNN(
             conv_type="sage", in_channels=8,
             hidden_channels=HIDDEN, out_channels=OUT_CHANNELS,
@@ -72,6 +73,10 @@ class TestHomogeneousGNNForwardBatch:
         assert targets.shape == (NUM_NODES,)
 
     def test_forward_batch_seed_node_slicing(self):
+        """
+        When ``data.batch_size`` is set, ``forward_batch`` slices outputs to
+        the seed nodes only (mini-batch neighbor sampling convention).
+        """
         model = HomogeneousGNN(
             conv_type="sage", in_channels=8,
             hidden_channels=HIDDEN, out_channels=OUT_CHANNELS,
@@ -99,6 +104,21 @@ class TestHomogeneousGNNForwardBatch:
 
 class TestHeterogeneousGNNForwardBatch:
     def _make_hetero_data(self, with_encoder=False):
+        """
+        Build a minimal ``HeteroData`` object for event–actor graphs.
+
+        Parameters
+        ----------
+        with_encoder : bool
+            When ``True``, attaches ``x_cat`` and ``x_num`` to the event
+            node store so that a ``TabularInputEncoder`` can be exercised.
+
+        Returns
+        -------
+        torch_geometric.data.HeteroData
+            Graph with event and actor nodes connected by ``has_actor`` /
+            ``rev_has_actor`` edges; ``batch_size`` is set to 10 on event nodes.
+        """
         data = HeteroData()
         data["event"].y = torch.randint(0, OUT_CHANNELS, (NUM_EVENTS,))
         data["event"].num_nodes = NUM_EVENTS
@@ -124,6 +144,10 @@ class TestHeterogeneousGNNForwardBatch:
         return data
 
     def test_forward_batch_featureless(self):
+        """
+        Featureless heterogeneous GNN uses learned node embeddings and returns
+        seed-node-sliced logits and targets matching ``batch_size``.
+        """
         model = HeterogeneousGNN(
             conv_type="rgcn", in_channels=0,
             hidden_channels=HIDDEN, out_channels=OUT_CHANNELS,
@@ -141,6 +165,10 @@ class TestHeterogeneousGNNForwardBatch:
         assert targets.shape[0] == data["event"].batch_size
 
     def test_forward_batch_with_encoder(self):
+        """
+        When a ``TabularInputEncoder`` is provided, node features flow through
+        the encoder before the GNN layers; output shapes still match batch_size.
+        """
         encoder = TabularInputEncoder(
             categorical_cardinalities={"col_a": 10},
             numeric_dim=3,

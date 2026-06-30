@@ -26,6 +26,34 @@ class HeterogeneousGNN(nn.Module):
         event_type: str = "event",
         num_nodes_per_type: dict[str, int] | None = None,
     ):
+        """
+        Parameters
+        ----------
+        conv_type : str
+            Heterogeneous convolution type: 'rgcn', 'rgat', or 'han'.
+        in_channels : int
+            Input feature dimension (0 for featureless / embedding mode).
+        hidden_channels : int
+            Width of hidden GNN layers.
+        out_channels : int
+            Output dimension (number of classes).
+        num_relations : int or None
+            Total number of edge types (required for RGCN and RGAT).
+        metadata : tuple or None
+            (node_types, edge_types) from HeteroData.metadata() (required for HAN).
+        num_layers : int
+            Total number of convolution layers (must be >= 2).
+        dropout : float
+            Dropout probability.
+        heads : int
+            Number of attention heads (RGAT/HAN).
+        encoder : nn.Module or None
+            Optional tabular input encoder for event node features.
+        event_type : str
+            Name of the event node type in the HeteroData object.
+        num_nodes_per_type : dict[str, int] or None
+            Per-node-type counts for featureless mode (learnable embeddings).
+        """
         super().__init__()
         self.encoder = encoder
         self.event_type = event_type
@@ -91,11 +119,13 @@ class HeterogeneousGNN(nn.Module):
         )
 
     def forward(self, x_dict, edge_index_dict):
+        """Dispatch to HAN or flattened (RGCN/RGAT) forward based on conv_type."""
         if self.conv_type == "han":
             return self._forward_han(x_dict, edge_index_dict)
         return self._forward_flattened(x_dict, edge_index_dict)
 
     def _forward_flattened(self, x_dict, edge_index_dict):
+        """Run RGCN/RGAT by converting to a homogeneous graph, then unflatten the output."""
         data = HeteroData()
 
         for node_type, x in x_dict.items():
@@ -125,6 +155,7 @@ class HeterogeneousGNN(nn.Module):
         return self._unflatten(x, data)
 
     def _forward_han(self, x_dict, edge_index_dict):
+        """Run HAN message-passing on the heterogeneous graph natively."""
         for node_type, x in x_dict.items():
             if x is None:
                 num_nodes = x_dict[node_type].size(0)
@@ -154,6 +185,7 @@ class HeterogeneousGNN(nn.Module):
         num_relations=None,
         metadata=None,
     ):
+        """Instantiate a single heterogeneous convolution layer of the configured type."""
         if self.conv_type == "rgcn":
             return RGCNConv(in_dim, out_dim, num_relations)
 
@@ -174,18 +206,28 @@ class HeterogeneousGNN(nn.Module):
         raise ValueError(f"Unknown conv_type '{self.conv_type}'")
 
     def _hidden_dim(self, hidden_channels, heads):
+        """Return the effective hidden dimension after a non-final layer (RGAT multiplies by heads)."""
         return hidden_channels * heads if self.conv_type == "rgat" else hidden_channels
 
     def _activation(self, x):
+        """Apply ELU for RGAT, ReLU for all other conv types."""
         return F.elu(x) if self.conv_type == "rgat" else F.relu(x)
 
     def _unflatten(self, x, data):
+        """Reverse the to_homogeneous flattening: split x back into per-node-type tensors."""
         out = {}
         for i, node_type in enumerate(data._node_type_names):
             out[node_type] = x[data.node_type == i]
         return out
 
     def forward_batch(self, batch, device):
+        """
+        Move a HeteroData batch to device, run forward, and return (logits, targets).
+
+        Handles both featureless mode (zero initialisation) and encoded mode
+        (uses self.encoder to build event node features from x_cat/x_num).
+        Slices logits and targets to batch_size to exclude sampled neighbourhood nodes.
+        """
         batch = batch.to(device)
 
         x_dict = {}

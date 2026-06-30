@@ -101,12 +101,33 @@ def verbalize_actor(row: object, prefix: str, dictionaries: dict) -> Optional[st
 
 
 def verbalize_event_location(row, dictionaries) -> Optional[str]:
+    """Return a title-cased location name for the event's ActionGeo_FeatureID, or None."""
     loc = translate_code(row.get("ActionGeo_FeatureID"),
                          dictionaries.get("ActionGeo_FeatureID", {}))
     return normalize_name(loc) if loc else None
 
 
 def event_to_text(row, dictionaries, verb: str) -> str:
+    """
+    Convert a single event row into a natural-language sentence.
+
+    Constructs [WHO] actor1 verb [WHOM] actor2 [WHERE] location [WHEN] time
+    phrases by calling verbalize_actor, verbalize_event_location, and format_day.
+
+    Parameters
+    ----------
+    row : dict-like
+        A single event row from the GDELT split DataFrame.
+    dictionaries : dict
+        Mapping from column name to {code: label} look-up dicts.
+    verb : str
+        Interaction verb (e.g. 'interacted with').
+
+    Returns
+    -------
+    str
+        Space-joined sentence with [WHO], [WHERE], [WHEN] tags.
+    """
     actor1 = verbalize_actor(row, "Actor1", dictionaries)
     actor2 = verbalize_actor(row, "Actor2", dictionaries)
 
@@ -131,6 +152,24 @@ def event_to_text(row, dictionaries, verb: str) -> str:
 
 
 def build_event_texts(df: pd.DataFrame, dictionaries: dict) -> list[str]:
+    """
+    Convert every row in df to a natural-language event sentence.
+
+    Verbs are assigned deterministically (round-robin from INTERACTION_VERBS)
+    so the same row always receives the same verb across pipeline runs.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        GDELT split DataFrame (must contain actor and geo columns).
+    dictionaries : dict
+        Per-column code -> label look-up dicts.
+
+    Returns
+    -------
+    list[str]
+        One sentence per row, in the same order as df.
+    """
     verbs = INTERACTION_VERBS
     texts = []
 

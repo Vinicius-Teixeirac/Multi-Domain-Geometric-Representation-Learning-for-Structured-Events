@@ -49,6 +49,22 @@ class HeterogeneousEventGraphBuilder(GraphBuilder):
         node_id_col: str = "GlobalEventID",
         label_col: str = "QuadClass",
     ):
+        """
+        Parameters
+        ----------
+        data_dir : Path
+            Root directory containing entity parquets (ENTITIES_DATA).
+        dataset_name : str
+            Dataset subdirectory name.
+        split : str
+            Split name ('train', 'valid', or 'test').
+        split_tag : str
+            Split regime identifier.
+        node_id_col : str
+            Column whose values uniquely identify event nodes.
+        label_col : str
+            Column with integer class labels for event nodes.
+        """
         self.data_dir = data_dir
         self.dataset_name = dataset_name
         self.split = split
@@ -105,6 +121,7 @@ class HeterogeneousEventGraphBuilder(GraphBuilder):
             component_col: str,
             component_index: Dict,
         ):
+            """Build and attach forward and reverse edges between events and a component type."""
             edge_fwd, edge_rev = build_event_component_edges(
                 df=df,
                 event_idx_col="event_idx",

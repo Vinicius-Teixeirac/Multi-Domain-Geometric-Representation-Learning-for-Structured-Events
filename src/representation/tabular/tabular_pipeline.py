@@ -44,6 +44,14 @@ class TabularPipeline:
     # Init
     # ------------------------------------------------------------------
     def __init__(self, dataset_name: str, split_tag: str = "default"):
+        """
+        Parameters
+        ----------
+        dataset_name : str
+            Dataset directory name (used to locate splits, artifacts, and features).
+        split_tag : str
+            Identifier for the split regime (e.g. 'default').
+        """
         self.dataset_name = dataset_name
         self.split_tag = split_tag
         self.input_dir = SPLITS_DATA / dataset_name
@@ -91,6 +99,7 @@ class TabularPipeline:
     # Loading helpers
     # ------------------------------------------------------------------
     def _load_split(self, split: str) -> pd.DataFrame:
+        """Load the parquet for the given split name ('train', 'valid', or 'test')."""
         return load_parquet(f"{split}_{self.split_tag}.parquet", self.input_dir)
 
     # ------------------------------------------------------------------
@@ -127,6 +136,7 @@ class TabularPipeline:
     def _validate_encoding_compatibility(
         col: str, kind: str, method: str
     ) -> None:
+        """Raise ValueError if method is not compatible with the column's kind."""
         valid = {
             "categorical": {"label", "hash"},
             "date": {"cyclical"},
@@ -233,6 +243,7 @@ class TabularPipeline:
         raise ValueError(f"Unknown encoding method '{method}' for column '{col}'.")
 
     def _transform_column(self, df: pd.DataFrame, col: str) -> pd.DataFrame:
+        """Apply a previously fitted encoder for col to df (val/test splits)."""
         cfg = ENCODING_SCHEMA.get(col)
         series = df[col]
 
@@ -276,12 +287,14 @@ class TabularPipeline:
     # Persistence
     # ------------------------------------------------------------------
     def _save_artifact(self, name: str, obj) -> None:
+        """Persist encoder obj to artifacts_dir/{name}.json and cache it in memory."""
         path = self.artifacts_dir / f"{name}.json"
         obj.save(path)
         self.fitted_objects[name] = obj
         logger.debug(f"Saved artifact '{name}' to {path}")
 
     def _load_artifact(self, name: str):
+        """Return the encoder for name from cache, or deserialise it from disk."""
         if name in self.fitted_objects:
             return self.fitted_objects[name]
 
@@ -297,6 +310,7 @@ class TabularPipeline:
             )
 
     def _save_split(self, df: pd.DataFrame, split: str) -> None:
+        """Write encoded features for split to {split}_{split_tag}_features.parquet."""
         out = self.output_dir / f"{split}_{self.split_tag}_features.parquet"
         df.to_parquet(out, index=False)
         logger.info(f"Saved {split} features with shape {df.shape} to {out}")

@@ -37,9 +37,11 @@ class BertDataset(torch.utils.data.Dataset):
     # ------------------------------------------------------------------
 
     def __len__(self) -> int:
+        """Return the number of examples in the dataset."""
         return self.labels.size(0)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+        """Return a single example as a dict of tensors including 'labels'."""
         item = {k: v[idx] for k, v in self.encodings.items()}
         item["labels"] = self.labels[idx]
         return item
@@ -49,6 +51,7 @@ class BertDataset(torch.utils.data.Dataset):
     # ------------------------------------------------------------------
 
     def _validate_shapes(self):
+        """Raise ValueError if any encoding tensor has a different first-dimension size from labels."""
         n = self.labels.size(0)
         for key, tensor in self.encodings.items():
             if tensor.size(0) != n:

@@ -47,6 +47,7 @@ def resolve_node_features(
 # Implementation
 # ---------------------------------------------------------------------
 def _all_tabular(features_df: pd.DataFrame) -> Dict[str, List[str]]:
+    """Partition all non-id/non-target columns in features_df into categorical and numeric groups."""
     categorical: List[str] = []
     numeric: List[str] = []
 

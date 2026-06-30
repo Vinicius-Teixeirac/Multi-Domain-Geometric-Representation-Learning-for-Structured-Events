@@ -14,11 +14,32 @@ def build_binary_edges_from_shared_keys(
     seed: Optional[int] = 42,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Builds a binary undirected graph.
-    Two nodes are connected if they share at least one key.
+    Build an undirected binary graph where two nodes are connected if they share at least one key.
 
-    Neighbor sampling is applied PER KEY and PER NODE.
-    No multiedges are created.
+    Neighbour sampling is applied per key per node to cap the edge density.
+    Duplicate edges (same pair via multiple keys) are eliminated so the
+    result is a simple graph.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Entity DataFrame with a node index column and one column per key.
+    keys : iterable of str
+        Column names used to define shared-key adjacency.
+    node_idx_col : str
+        Column containing integer node indices.
+    max_neighbors_per_key : dict or None
+        Per-key neighbour sampling limit. Falls back to default_max_neighbors.
+    default_max_neighbors : int
+        Default per-node neighbour cap when the key has no explicit limit.
+    seed : int or None
+        Seed for the random neighbour sampler (None = non-deterministic).
+
+    Returns
+    -------
+    src : np.ndarray of shape (E,) int64
+    dst : np.ndarray of shape (E,) int64
+        Source and destination node indices of the undirected edge set.
     """
     rng = np.random.default_rng(seed)
 
@@ -26,6 +47,7 @@ def build_binary_edges_from_shared_keys(
     neighbors: Dict[int, Set[int]] = {}
 
     def add_edge(u: int, v: int):
+        """Add an undirected edge between u and v, skipping self-loops."""
         if u == v:
             return
         neighbors.setdefault(u, set()).add(v)

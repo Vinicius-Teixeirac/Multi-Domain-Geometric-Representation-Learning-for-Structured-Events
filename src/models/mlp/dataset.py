@@ -59,9 +59,11 @@ class EventDataset(Dataset):
     # PyTorch API
     # ------------------------------------------------------------------
     def __len__(self) -> int:
+        """Return the number of events in the dataset."""
         return len(self.y)
 
     def __getitem__(self, idx: int) -> tuple:
+        """Return (x_cat_dict, x_num_tensor, label) for the event at position idx."""
         return (
             {col: tensor[idx] for col, tensor in self.x_cat.items()},
             self.x_num[idx],

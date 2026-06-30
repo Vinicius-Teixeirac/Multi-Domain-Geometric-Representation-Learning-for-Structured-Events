@@ -25,6 +25,14 @@ class TextPipeline:
         model_name: str = "bert-base-uncased",
         max_length: int = 128,
     ):
+        """
+        Parameters
+        ----------
+        model_name : str
+            HuggingFace model identifier for the AutoTokenizer.
+        max_length : int
+            Maximum token sequence length; longer inputs are truncated.
+        """
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.max_length = max_length
 
@@ -55,6 +63,7 @@ class TextPipeline:
     # ------------------------------------------------------------------
 
     def _tokenize(self, texts: list[str]) -> Dict[str, torch.Tensor]:
+        """Tokenise a list of strings and return a plain dict of tensors."""
         enc = self.tokenizer(
             texts,
             padding="max_length",

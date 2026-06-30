@@ -30,6 +30,22 @@ class BertEventDataModule:
         model_name: str = "bert-base-uncased",
         max_length: int = 256,
     ):
+        """
+        Parameters
+        ----------
+        dataset_name : str
+            Dataset directory name (used to locate text parquets under TEXT_DATA).
+        batch_size : int
+            DataLoader mini-batch size.
+        split_tag : str
+            Split regime identifier.
+        num_workers : int
+            DataLoader worker processes.
+        model_name : str
+            HuggingFace tokenizer identifier.
+        max_length : int
+            Maximum token sequence length for the tokenizer.
+        """
         self.dataset_name = dataset_name
         self.split_tag = split_tag
         self.batch_size = batch_size
@@ -49,6 +65,7 @@ class BertEventDataModule:
     # ------------------------------------------------------------------
 
     def setup(self):
+        """Load and tokenise all splits; populate train/val/test dataset attributes."""
         train_df = self._load_split("train", self.split_tag)
         val_df   = self._load_split("valid", self.split_tag)
         test_df  = self._load_split("test", self.split_tag)
@@ -62,6 +79,7 @@ class BertEventDataModule:
     # ------------------------------------------------------------------
 
     def _split_path(self, split: str, split_tag: str) -> Path:
+        """Return the expected path for the text parquet of the given split."""
         return (
             TEXT_DATA
             / self.dataset_name
@@ -69,6 +87,9 @@ class BertEventDataModule:
         )
 
     def _load_split(self, split: str, split_tag: str) -> Optional[pd.DataFrame]:
+        """
+        Load the text parquet for the given split, or return None for a missing validation split.
+        """
         path = self._split_path(split, split_tag)
         if not path.exists():
             if split == "valid":
@@ -79,6 +100,7 @@ class BertEventDataModule:
         return pd.read_parquet(path)
 
     def _build_dataset(self, df: pd.DataFrame) -> BertDataset:
+        """Tokenise df and return a BertDataset with encodings and labels."""
         encodings, labels = self.pipeline.build_dataset(df)
         return BertDataset(encodings, labels)
 
@@ -87,6 +109,7 @@ class BertEventDataModule:
     # ------------------------------------------------------------------
 
     def _loader(self, dataset: BertDataset, shuffle: bool) -> DataLoader:
+        """Wrap dataset in a DataLoader with the configured batch size and num_workers."""
         return DataLoader(
             dataset,
             batch_size=self.batch_size,
@@ -95,12 +118,15 @@ class BertEventDataModule:
         )
 
     def train_dataloader(self) -> DataLoader:
+        """Return a shuffled DataLoader for the training split."""
         return self._loader(self.train_dataset, shuffle=True)
 
     def val_dataloader(self) -> Optional[DataLoader]:
+        """Return a DataLoader for the validation split, or None if no validation split exists."""
         if self.val_dataset is None:
             return None
         return self._loader(self.val_dataset, shuffle=False)
 
     def test_dataloader(self) -> DataLoader:
+        """Return a DataLoader for the test split."""
         return self._loader(self.test_dataset, shuffle=False)

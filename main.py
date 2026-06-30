@@ -68,6 +68,16 @@ def _split_tag(base_cfg: dict, seed: int) -> str:
 
 
 def parse_args():
+    """
+    Parse command-line arguments for the GDELT experiment runner.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed arguments including seed, datasets, force flag, and per-model
+        YAML config file lists (mlp_configs, gnn_configs, bert_configs,
+        multi_domain_configs).
+    """
     parser = argparse.ArgumentParser("GDELT experiment runner")
 
     parser.add_argument("--seed", type=int, default=42)
@@ -126,6 +136,15 @@ def parse_args():
 # Main
 # --------------------------------------------------
 def main():
+    """
+    Orchestrate the full multi-model experiment pipeline.
+
+    Runs six sequential stages per dataset: cleaning, splitting, entity
+    extraction, tabular feature engineering, text encoding, and then one
+    training + evaluation loop for each supplied model config (MLP, GNN,
+    BERT, multi-domain).  Stages are idempotent — artifacts are reused
+    unless ``--force`` is passed.
+    """
     args = parse_args()
     set_seed(args.seed)
 

@@ -73,6 +73,14 @@ class HypersphericalEncoder(nn.Module):
     """
 
     def __init__(self, out_dim: int = 32, hidden_dim: int = 64):
+        """
+        Parameters
+        ----------
+        out_dim : int
+            Output embedding dimension; output lives on S^{out_dim-1}.
+        hidden_dim : int
+            Intermediate hypersphere dimension between the two SphericalLinear layers.
+        """
         super().__init__()
         self.layer1 = SphericalLinear(3, hidden_dim)
         self.act    = SphereReLU()
@@ -83,6 +91,19 @@ class HypersphericalEncoder(nn.Module):
         lat_lon: torch.Tensor,
         geo_country_idx: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """
+        Encode (lat, lon) coordinates to a unit vector on S^{out_dim-1}.
+
+        Parameters
+        ----------
+        lat_lon : torch.Tensor of shape (B, 2)
+            Latitude and longitude in degrees.
+        geo_country_idx : ignored (accepted for API uniformity)
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim) on S^{out_dim-1}
+        """
         x = _to_s2(lat_lon)   # (B, 3)          on S^2
         x = self.layer1(x)    # (B, hidden_dim)  on S^{hidden-1}
         x = self.act(x)       # (B, hidden_dim)  on S^{hidden-1}
@@ -100,6 +121,14 @@ class ProjectedEncoder(nn.Module):
     """
 
     def __init__(self, out_dim: int = 32, hidden_dim: int = 64):
+        """
+        Parameters
+        ----------
+        out_dim : int
+            Output embedding dimension; L2-normalised to unit norm.
+        hidden_dim : int
+            Hidden width of the MLP operating in Euclidean space.
+        """
         super().__init__()
         self.proj = nn.Sequential(
             nn.Linear(3, hidden_dim),
@@ -113,6 +142,18 @@ class ProjectedEncoder(nn.Module):
         lat_lon: torch.Tensor,
         geo_country_idx: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """
+        Project S^2 coordinates through a Euclidean MLP and L2-normalise the result.
+
+        Parameters
+        ----------
+        lat_lon : torch.Tensor of shape (B, 2)
+        geo_country_idx : ignored
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim), unit-norm.
+        """
         return F.normalize(self.proj(_to_s2(lat_lon)), p=2, dim=-1)
 
 
@@ -123,6 +164,14 @@ class EuclideanEncoder(nn.Module):
     """
 
     def __init__(self, out_dim: int = 32, hidden_dim: int = 64):
+        """
+        Parameters
+        ----------
+        out_dim : int
+            Output embedding dimension.
+        hidden_dim : int
+            Hidden width of the MLP.
+        """
         super().__init__()
         self.proj = nn.Sequential(
             nn.Linear(2, hidden_dim),
@@ -136,6 +185,18 @@ class EuclideanEncoder(nn.Module):
         lat_lon: torch.Tensor,
         geo_country_idx: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """
+        Apply MLP directly to (lat, lon) without any spherical pre-processing.
+
+        Parameters
+        ----------
+        lat_lon : torch.Tensor of shape (B, 2)
+        geo_country_idx : ignored
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim)
+        """
         return self.proj(lat_lon)
 
 
@@ -165,6 +226,18 @@ class RegionAwareEncoder(nn.Module):
         region_cardinality: int = 1,
         region_embed_dim: int = 16,
     ):
+        """
+        Parameters
+        ----------
+        out_dim : int
+            Output embedding dimension; lives on S^{out_dim-1}.
+        hidden_dim : int
+            Intermediate hypersphere dimension.
+        region_cardinality : int
+            Number of unique country codes + 1 (index 0 = unknown).
+        region_embed_dim : int
+            Dimension of the learnable country embedding.
+        """
         super().__init__()
         # padding_idx=0 -> zero vector for unknown/missing country
         self.region_embed = nn.Embedding(
@@ -180,6 +253,20 @@ class RegionAwareEncoder(nn.Module):
         lat_lon: torch.Tensor,
         geo_country_idx: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """
+        Blend spherical geo path with a country embedding and return a point on S^{out-1}.
+
+        Parameters
+        ----------
+        lat_lon : torch.Tensor of shape (B, 2)
+            Latitude and longitude in degrees.
+        geo_country_idx : torch.Tensor of shape (B,) or None
+            Integer country index; None uses the zero (unknown) embedding.
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim) on S^{out_dim-1}
+        """
         x = _to_s2(lat_lon)                                # (B, 3)         on S^2
         h = self.sphere_layer(x)                           # (B, hidden)    on S^{hidden-1}
         h = self.sphere_act(h)                             # (B, hidden)    on S^{hidden-1}

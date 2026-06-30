@@ -15,6 +15,25 @@ def compute_classification_metrics(
     logits: torch.Tensor,
     targets: torch.Tensor,
 ) -> Dict[str, float]:
+    """
+    Compute standard multi-class classification metrics from raw logits.
+
+    Parameters
+    ----------
+    logits : torch.Tensor of shape (N, C)
+        Unnormalised class scores.
+    targets : torch.Tensor of shape (N,)
+        Ground-truth class indices.
+
+    Returns
+    -------
+    dict with keys:
+        accuracy         : float
+        f1_macro         : float
+        f1_weighted      : float
+        precision_macro  : float
+        recall_macro     : float
+    """
     preds = torch.argmax(logits, dim=1).cpu().numpy()
     y = targets.cpu().numpy()
 
@@ -32,6 +51,22 @@ def compute_confusion(
     logits: torch.Tensor,
     targets: torch.Tensor,
 ) -> np.ndarray:
+    """
+    Compute a confusion matrix from raw logits.
+
+    Parameters
+    ----------
+    logits : torch.Tensor of shape (N, C)
+        Unnormalised class scores.
+    targets : torch.Tensor of shape (N,)
+        Ground-truth class indices.
+
+    Returns
+    -------
+    np.ndarray of shape (C, C)
+        Confusion matrix where entry [i, j] is the number of samples
+        with true class i predicted as class j.
+    """
     preds = torch.argmax(logits, dim=1).cpu().numpy()
     y = targets.cpu().numpy()
     return confusion_matrix(y, preds)

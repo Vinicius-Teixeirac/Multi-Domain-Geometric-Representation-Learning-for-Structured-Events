@@ -36,7 +36,25 @@ _MIN_TRAIN_FOR_VALID: int = 2000
 
 
 class Splitter:
+    """
+    Event-level inductive dataset splitter for GDELT event data.
+
+    Entities (actors, locations, days) may appear across splits; only
+    event identity is strictly isolated between train, validation, and test.
+
+    Parameters
+    ----------
+    sample_name : str
+        Dataset directory name (must exist under PROCESSED_DATA).
+    """
+
     def __init__(self, sample_name: str):
+        """
+        Parameters
+        ----------
+        sample_name : str
+            Dataset directory name (must exist under PROCESSED_DATA).
+        """
         self.sample_name = sample_name
         self.input_dir = PROCESSED_DATA / sample_name
         self.output_dir = SPLITS_DATA / sample_name
@@ -54,6 +72,7 @@ class Splitter:
     # Loading
     # ------------------------------------------------------------------ #
     def load_clean(self, filename: str) -> pd.DataFrame:
+        """Load a cleaned parquet file from the input directory."""
         return load_parquet(filename, self.input_dir)
 
     # ------------------------------------------------------------------ #
@@ -61,6 +80,7 @@ class Splitter:
     # ------------------------------------------------------------------ #
     @staticmethod
     def sort_by_time(df: pd.DataFrame, column: str) -> pd.DataFrame:
+        """Sort df ascending by column (in-place chronological ordering for temporal splits)."""
         if column not in df.columns:
             raise ValueError(f"Time column '{column}' not found in dataframe.")
         return df.sort_values(column).reset_index(drop=True)
@@ -69,6 +89,7 @@ class Splitter:
     # Saving
     # ------------------------------------------------------------------ #
     def _save(self, df: pd.DataFrame, split: str, tag: str) -> Path:
+        """Write split parquet to the output directory; return the path."""
         filename = f"{split}_{tag}.parquet"
         path = self.output_dir / filename
         df.to_parquet(path, index=False)
@@ -76,6 +97,7 @@ class Splitter:
         return path
 
     def _save_metadata(self, tag: str, metadata: dict) -> None:
+        """Persist split configuration metadata as split_{tag}.json."""
         path = self.output_dir / f"split_{tag}.json"
         with open(path, "w") as f:
             json.dump(metadata, f, indent=2)

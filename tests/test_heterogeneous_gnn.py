@@ -21,6 +21,15 @@ NUM_RELATIONS = len(EDGE_TYPES)
 
 @pytest.fixture
 def edge_index_dict():
+    """
+    Random edge indices for both ``has_actor`` and ``rev_has_actor`` relations.
+
+    Returns
+    -------
+    dict[tuple, torch.Tensor]
+        Mapping from ``(src_type, relation, dst_type)`` to a ``(2, 20)`` edge
+        index tensor.
+    """
     return {
         ("event", "has_actor", "actor"): torch.stack([
             torch.randint(0, NUM_EVENTS, (20,)),
@@ -35,6 +44,15 @@ def edge_index_dict():
 
 @pytest.fixture
 def x_dict():
+    """
+    Random node feature tensors for event and actor node types.
+
+    Returns
+    -------
+    dict[str, torch.Tensor]
+        ``"event"`` → ``(NUM_EVENTS, IN_CHANNELS)`` and
+        ``"actor"`` → ``(NUM_ACTORS, IN_CHANNELS)``, both float32.
+    """
     return {
         "event": torch.randn(NUM_EVENTS, IN_CHANNELS),
         "actor": torch.randn(NUM_ACTORS, IN_CHANNELS),
@@ -44,6 +62,7 @@ def x_dict():
 @pytest.mark.parametrize("conv_type", ["rgcn", "rgat", "han"])
 class TestHeterogeneousGNN:
     def test_construction(self, conv_type):
+        """Model instantiates with the correct hidden and output dimensions."""
         model = HeterogeneousGNN(
             conv_type=conv_type,
             in_channels=IN_CHANNELS,
@@ -57,6 +76,10 @@ class TestHeterogeneousGNN:
         assert model.out_dim == OUT_CHANNELS
 
     def test_forward_shape(self, conv_type, x_dict, edge_index_dict):
+        """
+        Forward pass returns a dict with float32 event embeddings of shape
+        ``(NUM_EVENTS, OUT_CHANNELS)``.
+        """
         model = HeterogeneousGNN(
             conv_type=conv_type,
             in_channels=IN_CHANNELS,

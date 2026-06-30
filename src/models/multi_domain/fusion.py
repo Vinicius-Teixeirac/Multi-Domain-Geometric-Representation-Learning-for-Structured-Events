@@ -57,6 +57,18 @@ class ConcatMLPFusion(nn.Module):
         hidden_dim: int = 128,
         dropout: float = 0.2,
     ):
+        """
+        Parameters
+        ----------
+        view_dims : list[int]
+            Output dimensionality of each domain view encoder.
+        num_classes : int
+            Number of target classes for the output logits.
+        hidden_dim : int
+            Hidden width of the classifier MLP.
+        dropout : float
+            Dropout probability inside the MLP.
+        """
         super().__init__()
         self.mlp = nn.Sequential(
             nn.Linear(sum(view_dims), hidden_dim),
@@ -67,6 +79,7 @@ class ConcatMLPFusion(nn.Module):
         )
 
     def forward(self, views: list[torch.Tensor]) -> torch.Tensor:
+        """Concatenate all views and classify; return logits of shape (B, num_classes)."""
         return self.mlp(torch.cat(views, dim=-1))
 
 
@@ -91,6 +104,20 @@ class AttentionFusion(nn.Module):
         dropout: float = 0.2,
         attention_dim: int = 64,
     ):
+        """
+        Parameters
+        ----------
+        view_dims : list[int]
+            Output dimensionality of each domain view encoder.
+        num_classes : int
+            Number of target classes for the output logits.
+        hidden_dim : int
+            Dimension of per-view value projections and MLP input.
+        dropout : float
+            Dropout probability inside the classifier MLP.
+        attention_dim : int
+            Dimension of the shared attention scoring space.
+        """
         super().__init__()
         # Per-view projection to attention space
         self.score_projs = nn.ModuleList([
@@ -110,6 +137,7 @@ class AttentionFusion(nn.Module):
         )
 
     def forward(self, views: list[torch.Tensor]) -> torch.Tensor:
+        """Compute softmax attention over views and classify; return logits of shape (B, num_classes)."""
         # Attention scores: (B,) per view -> (B, num_views)
         scores = torch.stack([
             torch.tanh(proj(v)) @ self.query
@@ -146,6 +174,18 @@ class GatedFusion(nn.Module):
         hidden_dim: int = 128,
         dropout: float = 0.2,
     ):
+        """
+        Parameters
+        ----------
+        view_dims : list[int]
+            Output dimensionality of each domain view encoder.
+        num_classes : int
+            Number of target classes for the output logits.
+        hidden_dim : int
+            Hidden width of the gate network and value projections.
+        dropout : float
+            Dropout probability inside the classifier MLP.
+        """
         super().__init__()
         total_dim = sum(view_dims)
         self.gate_net = nn.Sequential(
@@ -163,6 +203,7 @@ class GatedFusion(nn.Module):
         )
 
     def forward(self, views: list[torch.Tensor]) -> torch.Tensor:
+        """Apply sigmoid gate from global context to the summed view projections; return logits of shape (B, num_classes)."""
         context = torch.cat(views, dim=-1)       # (B, total_dim)
         gate = self.gate_net(context)            # (B, hidden_dim)
         projected = sum(
@@ -197,11 +238,23 @@ class GeometryAwareFusion(nn.Module):
         view_manifolds: list[str],   # "sphere" | "euclidean" per view
         inner: nn.Module,            # pre-built inner fusion (sized to effective dims)
     ):
+        """
+        Parameters
+        ----------
+        view_manifolds : list[str]
+            Manifold tag per view: "sphere" or "euclidean".
+            Sphere views are mapped through log_north before fusion.
+        inner : nn.Module
+            Pre-built geometry-blind fusion module (ConcatMLPFusion,
+            AttentionFusion, or GatedFusion) sized to the effective
+            post-mapping dimensions.
+        """
         super().__init__()
         self.view_manifolds = view_manifolds
         self.inner = inner
 
     def forward(self, views: list[torch.Tensor]) -> torch.Tensor:
+        """Map sphere views to tangent space, then delegate to the inner fusion module; return logits of shape (B, num_classes)."""
         mapped = []
         for x, manifold in zip(views, self.view_manifolds):
             if manifold == "sphere":

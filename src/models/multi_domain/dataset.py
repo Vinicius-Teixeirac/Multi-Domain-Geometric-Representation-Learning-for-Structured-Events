@@ -144,9 +144,11 @@ class MultiDomainEventDataset(Dataset):
         )
 
     def __len__(self) -> int:
+        """Return the number of events in this split."""
         return self._len
 
     def __getitem__(self, idx: int) -> dict:
+        """Return a dict of per-domain tensors for the event at position idx."""
         return {
             "actor1_idx":      self.actor1_idx[idx],
             "actor2_idx":      self.actor2_idx[idx],

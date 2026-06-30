@@ -5,12 +5,40 @@ from transformers import AutoModel
 
 
 class BertForQuadClass(nn.Module):
+    """
+    BERT-based text classifier for the 4-class CAMEO QuadClass prediction task.
+
+    The final hidden state of the [CLS] token is passed through a linear
+    classifier.  Early transformer layers can be frozen to reduce the number
+    of trainable parameters and stabilise fine-tuning on smaller datasets.
+
+    Parameters
+    ----------
+    num_classes : int
+        Number of output classes (typically 4 for QuadClass).
+    model_name : str
+        HuggingFace model identifier (e.g. 'bert-base-uncased').
+    freeze_until_layer : int
+        All transformer layers with index < freeze_until_layer will have
+        their parameters frozen during training.
+    """
+
     def __init__(
         self,
         num_classes: int,
         model_name: str = "bert-base-uncased",
         freeze_until_layer: int = 10,
     ):
+        """
+        Parameters
+        ----------
+        num_classes : int
+            Number of output classes.
+        model_name : str
+            HuggingFace model identifier.
+        freeze_until_layer : int
+            Layers below this index are frozen.
+        """
         super().__init__()
 
         self.bert = AutoModel.from_pretrained(model_name)
@@ -25,6 +53,18 @@ class BertForQuadClass(nn.Module):
         self.classifier = nn.Linear(hidden_size, num_classes)
 
     def forward(self, input_ids, attention_mask):
+        """
+        Run BERT and return class logits from the [CLS] token.
+
+        Parameters
+        ----------
+        input_ids : torch.Tensor of shape (B, seq_len)
+        attention_mask : torch.Tensor of shape (B, seq_len)
+
+        Returns
+        -------
+        torch.Tensor of shape (B, num_classes)
+        """
         outputs = self.bert(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -33,6 +73,19 @@ class BertForQuadClass(nn.Module):
         return self.classifier(cls_embedding)
 
     def forward_batch(self, batch, device):
+        """
+        Unpack a BertDataset batch, move tensors to device, and return (logits, targets).
+
+        Parameters
+        ----------
+        batch : dict with keys 'input_ids', 'attention_mask', 'labels'
+        device : str
+            Target device string.
+
+        Returns
+        -------
+        tuple of (logits, targets) both on device.
+        """
         input_ids = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
         targets = batch["labels"].to(device)

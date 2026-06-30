@@ -51,6 +51,7 @@ _UNKNOWN_TOKEN = "__unk__"
 # Helpers
 # -----------------------------------------------------------------------
 def _actor_cols(prefix: str) -> list[str]:
+    """Return the list of actor attribute column names for the given prefix ('Actor1' or 'Actor2')."""
     return [f"{prefix}{b}" for b in _ATTR_BASES]
 
 

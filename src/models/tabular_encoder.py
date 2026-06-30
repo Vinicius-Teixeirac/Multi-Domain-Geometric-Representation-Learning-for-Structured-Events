@@ -26,6 +26,20 @@ class TabularInputEncoder(nn.Module):
         embedding_dim_rule: str = "sqrt",
         embedding_dropout: float = 0.2,
     ):
+        """
+        Parameters
+        ----------
+        categorical_cardinalities : dict[str, int]
+            Mapping from column name to vocabulary size (excluding the unknown
+            token, which adds one extra embedding row internally).
+        numeric_dim : int
+            Number of continuous input features (concatenated after embeddings).
+        embedding_dim_rule : str
+            Heuristic for computing embedding size from cardinality:
+            'sqrt' -> min(128, sqrt(card)); 'log' -> min(128, log2(card)+1).
+        embedding_dropout : float
+            Dropout probability applied to each categorical embedding.
+        """
         super().__init__()
 
         self.embedding_dropout = embedding_dropout
@@ -52,6 +66,20 @@ class TabularInputEncoder(nn.Module):
         x_cat: Dict[str, torch.Tensor],
         x_num: Optional[torch.Tensor],
     ) -> torch.Tensor:
+        """
+        Encode categorical and numeric inputs into a single dense vector.
+
+        Parameters
+        ----------
+        x_cat : dict[str, torch.Tensor of shape (B,)]
+            Per-column integer indices for categorical features.
+        x_num : torch.Tensor of shape (B, numeric_dim) or None
+            Continuous features; None or empty tensor is ignored.
+
+        Returns
+        -------
+        torch.Tensor of shape (B, output_dim)
+        """
         parts = []
 
         for name, emb in self.embeddings.items():

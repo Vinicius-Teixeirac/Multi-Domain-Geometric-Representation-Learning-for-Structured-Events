@@ -115,6 +115,7 @@ def build_event_node_tensors(
 # Internal helpers
 # ---------------------------------------------------------------------
 def _all_event_features(features_df: pd.DataFrame) -> Dict[str, List[str]]:
+    """Partition all non-id/non-target columns in features_df into categorical and numeric groups."""
     categorical: List[str] = []
     numeric: List[str] = []
 

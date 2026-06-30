@@ -141,6 +141,26 @@ class MultiDomainGeometricModel(nn.Module):
         time_features:   torch.Tensor,              # (B, 3) float32  [t_linear, doy, dow]
         geo_country_idx: torch.Tensor | None = None,  # (B,) int64
     ) -> torch.Tensor:                              # (B, num_classes)
+        """
+        Compute per-event class logits from the three domain views.
+
+        Parameters
+        ----------
+        actor1_idx : torch.Tensor of shape (B,)
+            Node indices for Actor1 in the actor co-occurrence graph.
+        actor2_idx : torch.Tensor of shape (B,)
+            Node indices for Actor2 in the actor co-occurrence graph.
+        geo : torch.Tensor of shape (B, 2)
+            Latitude and longitude in degrees.
+        time_features : torch.Tensor of shape (B, 3)
+            Raw temporal features: [t_linear_normalised, day_of_year, day_of_week].
+        geo_country_idx : torch.Tensor of shape (B,) or None
+            Integer country code indices; used only by the region_aware geo encoder.
+
+        Returns
+        -------
+        torch.Tensor of shape (B, num_classes)
+        """
         z_actor = self.actor_encoder(
             self._graph_x, self._graph_edge_index,
             actor1_idx, actor2_idx,

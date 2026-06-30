@@ -21,6 +21,21 @@ from src.utils.graph_io import save_graph
 # Helpers
 # ---------------------------------------------------------------------
 def _infer_feature_groups(df: pd.DataFrame):
+    """
+    Split df columns into categorical and numeric groups using COLUMNS_SCHEMA.
+
+    Id/target columns and the internal 'node_idx' column are excluded.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Feature DataFrame (output of TabularPipeline).
+
+    Returns
+    -------
+    categorical_cols : list[str]
+    numeric_cols : list[str]
+    """
     categorical_cols = []
     numeric_cols = []
 
@@ -55,8 +70,26 @@ def _build_node_features(
     split_tag: str = "default",
 ):
     """
-    Returns:
-        x: FloatTensor [num_nodes, feat_dim]
+    Build the node feature matrix for a homogeneous event graph.
+
+    Parameters
+    ----------
+    dataset_name : str
+        Dataset directory name.
+    split : str
+        Split name ('train', 'valid', or 'test').
+    policy : str
+        Feature policy: 'none' returns a (num_nodes, 1) constant tensor;
+        'all' loads encoded tabular features and runs them through a
+        TabularInputEncoder to produce a dense float matrix.
+    num_nodes : int
+        Number of nodes in the graph (used for the 'none' dummy tensor).
+    split_tag : str
+        Split regime identifier.
+
+    Returns
+    -------
+    torch.FloatTensor of shape (num_nodes, feat_dim)
     """
 
     # --------------------------------------------------
@@ -229,6 +262,30 @@ def make_gnn_loaders(
     split_tag: str = "default",
     seed: int = 42,
 ) -> Tuple:
+    """
+    Build inductive-safe homogeneous GNN loaders for train, val (optional), and test.
+
+    Parameters
+    ----------
+    dataset_name : str
+        Dataset directory name.
+    edge_keys : list[str]
+        Entity columns used to define shared-key edges.
+    batch_size : int
+        NeighborLoader seed node batch size (ignored in full-batch mode).
+    num_neighbors : list[int] or None
+        Neighbour fanout per GNN layer. None means full-batch loading.
+    node_feature_policy : str
+        'none' for structure-only; 'all' to attach tabular features.
+    split_tag : str
+        Split regime identifier.
+    seed : int
+        Random seed for graph construction.
+
+    Returns
+    -------
+    tuple of (train_loader, val_loader | None, test_loader)
+    """
     train_loader = _build_split_loader(
         dataset_name,
         "train",

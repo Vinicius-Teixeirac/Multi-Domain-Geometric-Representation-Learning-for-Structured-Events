@@ -25,6 +25,14 @@ class _ActorEncoderBase(nn.Module):
     """Shared categorical node feature embedding for all actor encoders."""
 
     def __init__(self, cardinalities: list[int], feat_embed_dim: int):
+        """
+        Parameters
+        ----------
+        cardinalities : list[int]
+            Per-attribute cardinality (including the unknown slot at index 0).
+        feat_embed_dim : int
+            Embedding dimension per categorical actor attribute.
+        """
         super().__init__()
         self.feat_embeddings = nn.ModuleList([
             nn.Embedding(card, feat_embed_dim, padding_idx=0)
@@ -48,6 +56,21 @@ class ActorSAGEEncoder(_ActorEncoderBase):
 
     Neighbourhood aggregation treats all co-occurring actors equally;
     only structural topology influences the resulting embeddings.
+
+    Parameters
+    ----------
+    cardinalities : list[int]
+        Per-attribute cardinality including the unknown slot at index 0.
+    feat_embed_dim : int
+        Embedding dimension per categorical actor attribute.
+    hidden_dim : int
+        Hidden dimension for GNN layers and the input projection.
+    out_dim : int
+        Output dimension of the pair embedding.
+    num_layers : int
+        Number of SAGEConv message-passing layers.
+    dropout : float
+        Dropout probability applied after each GNN layer.
     """
 
     def __init__(
@@ -104,6 +127,23 @@ class ActorGATEncoder(_ActorEncoderBase):
 
     Uses concat=False so output dim = hidden_dim regardless of gat_heads,
     keeping pair_proj input dimension stable across head counts.
+
+    Parameters
+    ----------
+    cardinalities : list[int]
+        Per-attribute cardinality including the unknown slot at index 0.
+    feat_embed_dim : int
+        Embedding dimension per categorical actor attribute.
+    hidden_dim : int
+        Hidden dimension for GNN layers and the input projection.
+    out_dim : int
+        Output dimension of the pair embedding.
+    num_layers : int
+        Number of GATConv message-passing layers.
+    dropout : float
+        Dropout probability applied after each GNN layer.
+    gat_heads : int
+        Number of attention heads per GATConv layer.
     """
 
     def __init__(
@@ -162,6 +202,21 @@ class ActorWeightedEncoder(_ActorEncoderBase):
     actor_graph_builder (stored in graph.edge_attr). GCNConv uses these
     during symmetric normalisation, giving more influence to actor pairs
     that co-occur frequently in training events.
+
+    Parameters
+    ----------
+    cardinalities : list[int]
+        Per-attribute cardinality including the unknown slot at index 0.
+    feat_embed_dim : int
+        Embedding dimension per categorical actor attribute.
+    hidden_dim : int
+        Hidden dimension for GNN layers and the input projection.
+    out_dim : int
+        Output dimension of the pair embedding.
+    num_layers : int
+        Number of GCNConv message-passing layers.
+    dropout : float
+        Dropout probability applied after each GNN layer.
     """
 
     def __init__(
@@ -222,6 +277,19 @@ class ActorAttributeEncoder(_ActorEncoderBase):
     No message passing is performed. Actor embeddings are derived purely
     from the 8 categorical attribute columns, making this approach suitable
     for unseen actors at inference time (fully inductive setting).
+
+    Parameters
+    ----------
+    cardinalities : list[int]
+        Per-attribute cardinality including the unknown slot at index 0.
+    feat_embed_dim : int
+        Embedding dimension per categorical actor attribute.
+    hidden_dim : int
+        Hidden dimension of the attribute projection MLP.
+    out_dim : int
+        Output dimension of the pair embedding.
+    dropout : float
+        Dropout probability applied inside the projection MLP.
     """
 
     def __init__(

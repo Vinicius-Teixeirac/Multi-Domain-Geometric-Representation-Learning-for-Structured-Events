@@ -6,8 +6,18 @@ import pandas as pd
 
 def build_index_map(values) -> Dict:
     """
-    Builds a stable index mapping from values to integers.
-    Assumes values are already sorted.
+    Build a stable {value: integer_index} mapping from an iterable.
+
+    Parameters
+    ----------
+    values : iterable
+        Sequence of unique values (caller must ensure they are already sorted
+        for deterministic ordering).
+
+    Returns
+    -------
+    dict
+        Mapping from each value to its zero-based index.
     """
     return {v: i for i, v in enumerate(values)}
 
@@ -18,11 +28,24 @@ def add_node_index(
     index_col: str = "node_idx",
 ) -> Dict:
     """
-    Adds a deterministic node index column to the dataframe.
+    Add a deterministic, content-stable node index column to df in-place.
 
-    Indexing is:
-        - split-local
-        - stable w.r.t. content (not row order)
+    The index is split-local and independent of row order: unique values in
+    id_col are sorted, then assigned consecutive integers starting at 0.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame to annotate; modified in-place.
+    id_col : str
+        Column whose unique values form the node vocabulary.
+    index_col : str
+        Name of the new integer index column to create.
+
+    Returns
+    -------
+    dict
+        Mapping from each unique id_col value to its assigned integer index.
     """
     if df[id_col].isna().any():
         raise ValueError(f"Missing values found in id column '{id_col}'")

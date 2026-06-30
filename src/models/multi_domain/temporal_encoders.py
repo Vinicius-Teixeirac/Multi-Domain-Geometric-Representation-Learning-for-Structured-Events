@@ -49,6 +49,14 @@ class ProductManifoldEncoder(nn.Module):
     _ENCODED_DIM: int = 5
 
     def __init__(self, out_dim: int = 16, hidden_dim: int = 32):
+        """
+        Parameters
+        ----------
+        out_dim : int
+            Output embedding dimension.
+        hidden_dim : int
+            Hidden width of the MLP that maps the 5-dim encoding to out_dim.
+        """
         super().__init__()
         self.proj = nn.Sequential(
             nn.Linear(self._ENCODED_DIM, hidden_dim),
@@ -58,6 +66,18 @@ class ProductManifoldEncoder(nn.Module):
         )
 
     def forward(self, time_features: torch.Tensor) -> torch.Tensor:
+        """
+        Encode time features using fixed annual/weekly periods.
+
+        Parameters
+        ----------
+        time_features : torch.Tensor of shape (B, 3)
+            Columns: [t_linear, doy, dow].
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim)
+        """
         t   = time_features[:, 0:1]
         doy = time_features[:, 1:2]
         dow = time_features[:, 2:3]
@@ -87,6 +107,14 @@ class LearnablePeriodEncoder(nn.Module):
     _ENCODED_DIM: int = 5
 
     def __init__(self, out_dim: int = 16, hidden_dim: int = 32):
+        """
+        Parameters
+        ----------
+        out_dim : int
+            Output embedding dimension.
+        hidden_dim : int
+            Hidden width of the projection MLP.
+        """
         super().__init__()
         self.log_period_annual = nn.Parameter(torch.log(torch.tensor(_PERIOD_ANNUAL)))
         self.log_period_weekly = nn.Parameter(torch.log(torch.tensor(_PERIOD_WEEKLY)))
@@ -98,6 +126,18 @@ class LearnablePeriodEncoder(nn.Module):
         )
 
     def forward(self, time_features: torch.Tensor) -> torch.Tensor:
+        """
+        Encode time features using learnable cycle periods.
+
+        Parameters
+        ----------
+        time_features : torch.Tensor of shape (B, 3)
+            Columns: [t_linear, doy, dow].
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim)
+        """
         t   = time_features[:, 0:1]
         doy = time_features[:, 1:2]
         dow = time_features[:, 2:3]
@@ -128,6 +168,16 @@ class FourierEncoder(nn.Module):
     """
 
     def __init__(self, out_dim: int = 16, hidden_dim: int = 32, num_frequencies: int = 8):
+        """
+        Parameters
+        ----------
+        out_dim : int
+            Output embedding dimension.
+        hidden_dim : int
+            Hidden width of the MLP following the Fourier feature map.
+        num_frequencies : int
+            Number of learnable frequency channels K; input to MLP is 3 + 2K.
+        """
         super().__init__()
         # Small-magnitude init to keep early-training Fourier features smooth
         self.W = nn.Parameter(torch.randn(num_frequencies, 3) * 0.01)
@@ -140,6 +190,18 @@ class FourierEncoder(nn.Module):
         )
 
     def forward(self, time_features: torch.Tensor) -> torch.Tensor:
+        """
+        Apply learnable Fourier feature map and project to out_dim.
+
+        Parameters
+        ----------
+        time_features : torch.Tensor of shape (B, 3)
+            Columns: [t_linear, doy, dow].
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim)
+        """
         z = time_features @ self.W.T                              # (B, K)
         fourier = torch.cat([torch.sin(z), torch.cos(z)], dim=-1) # (B, 2K)
         x = torch.cat([time_features, fourier], dim=-1)           # (B, 3+2K)
@@ -177,6 +239,14 @@ class RiemannianProductEncoder(nn.Module):
     """
 
     def __init__(self, out_dim: int = 16, hidden_dim: int = 32):
+        """
+        Parameters
+        ----------
+        out_dim : int
+            Output embedding dimension; output lives on S^{out_dim-1}.
+        hidden_dim : int
+            Intermediate sphere dimension for the annual and weekly SphericalLinear layers.
+        """
         super().__init__()
         t_dim = max(hidden_dim // 4, 1)
         self.annual_layer = SphericalLinear(2, hidden_dim)      # S^1 -> S^{hidden-1}
@@ -186,6 +256,18 @@ class RiemannianProductEncoder(nn.Module):
         self.blend = nn.Linear(blend_in, out_dim - 1)
 
     def forward(self, time_features: torch.Tensor) -> torch.Tensor:
+        """
+        Encode time features on a product manifold R x S^{hidden-1} x S^{hidden-1}.
+
+        Parameters
+        ----------
+        time_features : torch.Tensor of shape (B, 3)
+            Columns: [t_linear, doy, dow].
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim) on S^{out_dim-1}
+        """
         t   = time_features[:, 0:1]   # (B, 1)
         doy = time_features[:, 1:2]   # (B, 1)
         dow = time_features[:, 2:3]   # (B, 1)

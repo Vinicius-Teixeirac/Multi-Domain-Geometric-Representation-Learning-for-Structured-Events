@@ -146,6 +146,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
 # CLI wrapper
 # -----------------------------------------------------------------------------
 def parse_args():
+    """Parse the --config CLI argument and return the parsed namespace."""
     parser = argparse.ArgumentParser(description="Run MLP on GDELT")
     parser.add_argument(
         "--config",
@@ -157,6 +158,7 @@ def parse_args():
 
 
 def main():
+    """Entry point: parse CLI args, load YAML config, and dispatch to run_mlp."""
     args = parse_args()
     cfg = load_yaml_config(args.config)
     run_mlp(cfg)

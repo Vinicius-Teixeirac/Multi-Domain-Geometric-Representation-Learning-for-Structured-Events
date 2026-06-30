@@ -7,6 +7,7 @@ from tests.conftest import NUMERIC_DIM, NUM_CLASSES
 
 class TestEventDataset:
     def test_len(self, sample_dataframe):
+        """Dataset length equals the number of rows in the source DataFrame."""
         ds = EventDataset(
             dataframe=sample_dataframe,
             categorical_cols=["col_a", "col_b"],
@@ -15,6 +16,10 @@ class TestEventDataset:
         assert len(ds) == len(sample_dataframe)
 
     def test_getitem_format(self, sample_dataframe):
+        """
+        Single-item retrieval returns a ``(cat_dict, num_vec, target)`` tuple
+        where categoricals are scalar long tensors and numerics are float32.
+        """
         ds = EventDataset(
             dataframe=sample_dataframe,
             categorical_cols=["col_a", "col_b"],
@@ -35,6 +40,7 @@ class TestEventDataset:
         assert target.ndim == 0
 
     def test_no_numeric(self, sample_dataframe_no_numeric):
+        """When no numeric columns are provided, the numeric vector has shape ``(0,)``."""
         ds = EventDataset(
             dataframe=sample_dataframe_no_numeric,
             categorical_cols=["col_a", "col_b"],

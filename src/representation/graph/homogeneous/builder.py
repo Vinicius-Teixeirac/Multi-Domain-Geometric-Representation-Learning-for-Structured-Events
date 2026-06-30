@@ -48,6 +48,32 @@ class HomogeneousEventGraphBuilder(GraphBuilder):
         default_max_neighbors: int = 10,
         seed: int = 42,
     ):
+        """
+        Parameters
+        ----------
+        data_dir : Path
+            Root directory containing entity parquets (ENTITIES_DATA).
+        dataset_name : str
+            Dataset subdirectory name.
+        split : str
+            Split name ('train', 'valid', or 'test').
+        edge_keys : list[str]
+            Entity columns used to build shared-key edges
+            (e.g. ['Actor1ID', 'Actor2ID', 'Event_GeoID']).
+        split_tag : str
+            Split regime identifier.
+        node_id_col : str
+            Column whose values become node identities.
+        label_col : str
+            Column with integer class labels.
+        max_neighbors_per_key : dict or None
+            Per-key neighbour sampling limit. Falls back to
+            default_max_neighbors when a key is absent.
+        default_max_neighbors : int
+            Default per-node neighbour cap when no key-specific limit is set.
+        seed : int
+            Random seed for reproducible neighbour sampling.
+        """
         self.data_dir = data_dir
         self.dataset_name = dataset_name
         self.split = split
@@ -62,6 +88,15 @@ class HomogeneousEventGraphBuilder(GraphBuilder):
         self.seed = seed
 
     def build(self) -> Dict[str, Any]:
+        """
+        Load entity parquet, construct the homogeneous event graph, and return it.
+
+        Returns
+        -------
+        torch_geometric.data.Data
+            Graph with edge_index, y (labels), and num_nodes set.
+            No node feature matrix is attached; features are loaded separately.
+        """
         # --------------------------------------------------
         # Load split
         # --------------------------------------------------

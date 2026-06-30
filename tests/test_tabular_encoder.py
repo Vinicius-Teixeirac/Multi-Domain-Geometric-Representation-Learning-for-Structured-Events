@@ -12,6 +12,7 @@ from tests.conftest import (
 
 class TestTabularInputEncoder:
     def test_construction(self, cardinalities):
+        """Encoder is a ``torch.nn.Module`` with one embedding table per category."""
         enc = TabularInputEncoder(
             categorical_cardinalities=cardinalities,
             numeric_dim=NUMERIC_DIM,
@@ -20,6 +21,7 @@ class TestTabularInputEncoder:
         assert len(enc.embeddings) == len(cardinalities)
 
     def test_output_dim_sqrt(self, cardinalities):
+        """``output_dim`` matches the expected value under the ``sqrt`` sizing rule."""
         enc = TabularInputEncoder(
             categorical_cardinalities=cardinalities,
             numeric_dim=NUMERIC_DIM,
@@ -30,6 +32,7 @@ class TestTabularInputEncoder:
         )
 
     def test_output_dim_log(self, cardinalities):
+        """``output_dim`` matches the expected value under the ``log`` sizing rule."""
         enc = TabularInputEncoder(
             categorical_cardinalities=cardinalities,
             numeric_dim=NUMERIC_DIM,
@@ -40,6 +43,7 @@ class TestTabularInputEncoder:
         )
 
     def test_forward_shape(self, cardinalities, sample_x_cat, sample_x_num):
+        """Forward pass returns float32 output of shape ``(BATCH_SIZE, output_dim)``."""
         enc = TabularInputEncoder(
             categorical_cardinalities=cardinalities,
             numeric_dim=NUMERIC_DIM,
@@ -49,6 +53,7 @@ class TestTabularInputEncoder:
         assert out.dtype == torch.float32
 
     def test_no_numeric(self, cardinalities, sample_x_cat):
+        """Encoder handles zero numeric features, producing the correct output shape."""
         enc = TabularInputEncoder(
             categorical_cardinalities=cardinalities,
             numeric_dim=0,
@@ -58,6 +63,10 @@ class TestTabularInputEncoder:
         assert out.shape == (BATCH_SIZE, enc.output_dim)
 
     def test_dropout_mode(self, cardinalities, sample_x_cat, sample_x_num):
+        """
+        In eval mode, embedding dropout is disabled and forward passes are
+        deterministic; training mode may produce different outputs.
+        """
         enc = TabularInputEncoder(
             categorical_cardinalities=cardinalities,
             numeric_dim=NUMERIC_DIM,

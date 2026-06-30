@@ -147,6 +147,7 @@ class MultiDomainDataModule:
 
     # ------------------------------------------------------------------
     def _make_loader(self, dataset: MultiDomainEventDataset, shuffle: bool) -> DataLoader:
+        """Wrap dataset in a DataLoader with the configured batch_size and num_workers."""
         return DataLoader(
             dataset,
             batch_size=self.batch_size,
@@ -155,12 +156,15 @@ class MultiDomainDataModule:
         )
 
     def train_dataloader(self) -> DataLoader:
+        """Return a shuffled DataLoader over the training split."""
         return self._make_loader(self.train_dataset, shuffle=True)
 
     def val_dataloader(self) -> Optional[DataLoader]:
+        """Return an ordered DataLoader over the validation split, or None if no validation data."""
         if self.valid_dataset is None:
             return None
         return self._make_loader(self.valid_dataset, shuffle=False)
 
     def test_dataloader(self) -> DataLoader:
+        """Return an ordered DataLoader over the test split."""
         return self._make_loader(self.test_dataset, shuffle=False)
