@@ -1,8 +1,12 @@
 """Idempotency checks so runners skip experiments that already have results.
 
 Central entry point is should_skip: runners call it before expensive setup
-(data loading, model construction) and short-circuit if a checkpoint or
-results JSON already exists for the given exp_id.
+(data loading, model construction) and short-circuit if a results JSON
+already exists for the given exp_id. A checkpoint alone is NOT sufficient
+to skip: train_model() saves a checkpoint after the first epoch that
+improves, so a run that crashes between checkpointing and evaluation
+(e.g. an out-of-memory error while loading the checkpoint back for eval)
+would otherwise look "done" forever and silently never produce results.
 """
 
 import json
@@ -46,6 +50,11 @@ def _find_results_json(dataset: str, exp_id: str) -> Optional[Path]:
 def should_skip(exp_id: str, dataset: str) -> Tuple[bool, Dict[str, Optional[str]]]:
     """Decide whether an experiment should be skipped based on existing artifacts.
 
+    Only a results JSON proves an experiment fully completed (training +
+    evaluation + persistence). A checkpoint may exist for a run that
+    crashed before evaluation/results were written, so it is reported for
+    information but never causes a skip on its own.
+
     Parameters
     ----------
     exp_id : str
@@ -64,14 +73,13 @@ def should_skip(exp_id: str, dataset: str) -> Tuple[bool, Dict[str, Optional[str
     if not exp_id:
         return False, info
 
+    res = _find_results_json(dataset, exp_id)
+    if res is None:
+        return False, info
+    info["results_file"] = str(res)
+
     ck = _find_checkpoint(dataset, exp_id)
     if ck is not None:
         info["checkpoint"] = str(ck)
-        return True, info
 
-    res = _find_results_json(dataset, exp_id)
-    if res is not None:
-        info["results_file"] = str(res)
-        return True, info
-
-    return False, info
+    return True, info

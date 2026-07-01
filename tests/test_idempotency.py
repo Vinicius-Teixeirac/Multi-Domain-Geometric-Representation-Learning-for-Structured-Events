@@ -72,16 +72,21 @@ class TestFindResultsJson:
 
 
 class TestShouldSkip:
-    def test_skips_when_checkpoint_exists(self, patched_dirs):
-        """A found checkpoint should report skip=True with the checkpoint path populated."""
+    def test_does_not_skip_on_checkpoint_alone(self, patched_dirs):
+        """A checkpoint with no matching results JSON must NOT be skipped.
+
+        Regression test: train_model() checkpoints after the first epoch
+        that improves, so a run that then crashes before evaluation/results
+        are written (e.g. a CUDA OOM while reloading the checkpoint for
+        eval) must be retried, not silently treated as already done.
+        """
         artifacts_dir, _ = patched_dirs
         ck_dir = artifacts_dir / "my_dataset" / "models" / "EventMLP" / "exp123"
         ck_dir.mkdir(parents=True)
         (ck_dir / "best_model.pt").write_bytes(b"fake")
 
         skip, info = idem.should_skip("exp123", "my_dataset")
-        assert skip is True
-        assert info["checkpoint"] is not None
+        assert skip is False
         assert info["results_file"] is None
 
     def test_skips_when_only_results_exist(self, patched_dirs):
@@ -93,6 +98,21 @@ class TestShouldSkip:
 
         skip, info = idem.should_skip("exp123", "my_dataset")
         assert skip is True
+        assert info["results_file"] is not None
+
+    def test_skips_and_reports_checkpoint_when_both_exist(self, patched_dirs):
+        """A completed run (checkpoint + matching results) should skip with both paths populated."""
+        artifacts_dir, results_dir = patched_dirs
+        ck_dir = artifacts_dir / "my_dataset" / "models" / "EventMLP" / "exp123"
+        ck_dir.mkdir(parents=True)
+        (ck_dir / "best_model.pt").write_bytes(b"fake")
+        out_dir = results_dir / "my_dataset" / "EventMLP"
+        out_dir.mkdir(parents=True)
+        (out_dir / "mlp_results_1.json").write_text(json.dumps({"exp_id": "exp123"}))
+
+        skip, info = idem.should_skip("exp123", "my_dataset")
+        assert skip is True
+        assert info["checkpoint"] is not None
         assert info["results_file"] is not None
 
     def test_does_not_skip_when_nothing_found(self, patched_dirs):
