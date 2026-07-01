@@ -38,9 +38,11 @@ def evaluate_model(
 
     Returns (metrics dict, confusion matrix ndarray).
     """
+    # Load to CPU and discard optimizer state; eval only needs model weights.
     # weights_only=False because checkpoints include optimizer state dict (non-tensor objects)
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
+    del checkpoint
     model.to(device)
     model.eval()
 
