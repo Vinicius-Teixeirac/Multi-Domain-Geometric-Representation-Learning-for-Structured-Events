@@ -1,3 +1,5 @@
+"""Tests for EventMLP: construction, forward pass, and forward_batch unpacking."""
+
 import torch
 import pytest
 
@@ -11,7 +13,7 @@ from tests.conftest import (
 
 
 @pytest.fixture
-def mlp():
+def mlp() -> EventMLP:
     """Small EventMLP instance for fast unit tests."""
     return EventMLP(
         categorical_cardinalities=CATEGORICAL_CARDINALITIES,

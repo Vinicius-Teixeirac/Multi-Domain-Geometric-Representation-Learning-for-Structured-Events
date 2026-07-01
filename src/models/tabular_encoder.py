@@ -1,8 +1,21 @@
-# src/models/components/tabular_encoder.py
+# src/models/tabular_encoder.py
+"""
+Shared tabular feature encoder for event attributes.
+
+``TabularInputEncoder`` turns categorical event columns into learned
+embeddings and passes numeric columns through unchanged, concatenating the
+result into a single dense feature vector. It is not tied to any specific
+downstream architecture and is reused by both ``mlp/model.py`` (as the
+input stage of ``EventMLP``) and ``gnn/heterogeneous.py`` (to build event
+node features from tabular attributes before message passing).
+"""
+
 import math
 import torch
 import torch.nn as nn
 from typing import Dict, Optional
+
+__all__ = ["TabularInputEncoder"]
 
 
 class TabularInputEncoder(nn.Module):

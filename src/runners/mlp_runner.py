@@ -1,4 +1,18 @@
 # src/runners/mlp_runner.py
+"""
+Runner for the tabular MLP baseline.
+
+Pipeline:
+  1. Data module setup (loads cached tabular features, builds
+     train/val/test splits and categorical/numeric column layout)
+  2. Model construction (embedding layers for categoricals + MLP head)
+  3. Training via shared train_model()
+  4. Evaluation via evaluate_model()
+  5. Results persisted to RESULTS_DIR
+
+Usage (from main.py or standalone):
+    python -m src.runners.mlp_runner --config path/to/mlp_config.yaml
+"""
 
 import argparse
 import torch.nn as nn
@@ -26,6 +40,20 @@ logger = get_logger(__name__)
 def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
     """
     Run a single MLP training + evaluation pipeline.
+
+    Parameters
+    ----------
+    cfg : dict
+        Configuration dict (from an MLP YAML config) with at least
+        "dataset", "training", and "model" sections; may also carry
+        "exp_id", "seed", and "split_tag" injected by main.py.
+
+    Returns
+    -------
+    dict
+        Either ``{"skipped": True, ...}`` if an idempotent result already
+        exists for ``exp_id``, or the full results dict (metrics, confusion
+        matrix, architecture, training config, and artifact paths).
     """
 
     start_time = time.perf_counter()
@@ -145,7 +173,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
 # -----------------------------------------------------------------------------
 # CLI wrapper
 # -----------------------------------------------------------------------------
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse the --config CLI argument and return the parsed namespace."""
     parser = argparse.ArgumentParser(description="Run MLP on GDELT")
     parser.add_argument(

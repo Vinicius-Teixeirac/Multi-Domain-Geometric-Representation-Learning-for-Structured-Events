@@ -1,4 +1,4 @@
-# src/models/bert/dataset.py
+"""Torch Dataset wrapping tokenized BERT encodings and labels."""
 
 from typing import Dict
 import torch

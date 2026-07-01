@@ -1,7 +1,19 @@
 # src/testing/evaluate.py
+"""
+Central evaluation module.
+
+Provides ``evaluate_model``, the shared test-set inference routine
+invoked by every model family runner (MLP, GNN, BERT, multi-domain
+geometric model). Loads the best checkpoint saved by ``train_model``,
+runs inference, computes classification metrics and a confusion matrix,
+and persists both to ARTIFACTS_DATA.
+"""
+
 import json
 from pathlib import Path
+from typing import Dict, Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -21,10 +33,10 @@ def evaluate_model(
     dataset_name: str,
     device: str = "cpu",
     exp_id: str = "",
-) -> tuple:
+) -> Tuple[Dict[str, float], np.ndarray]:
     """Load the best checkpoint, run inference on the test set, and persist metrics.
 
-    Returns (metrics dict, confusion matrix tensor).
+    Returns (metrics dict, confusion matrix ndarray).
     """
     # weights_only=False because checkpoints include optimizer state dict (non-tensor objects)
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)

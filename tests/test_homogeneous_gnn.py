@@ -1,3 +1,6 @@
+"""Tests for HomogeneousGNN construction and forward pass across conv types
+(sage, gin, gat)."""
+
 import torch
 import pytest
 
@@ -11,7 +14,7 @@ OUT_CHANNELS = 4
 
 
 @pytest.fixture
-def edge_index():
+def edge_index() -> torch.Tensor:
     """
     Random homogeneous edge index with 40 edges over ``NUM_NODES`` nodes.
 
@@ -26,7 +29,7 @@ def edge_index():
 
 
 @pytest.fixture
-def x():
+def x() -> torch.Tensor:
     """Random node feature matrix of shape ``(NUM_NODES, IN_CHANNELS)``."""
     return torch.randn(NUM_NODES, IN_CHANNELS)
 

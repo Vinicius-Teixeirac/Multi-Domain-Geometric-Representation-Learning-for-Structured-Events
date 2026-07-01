@@ -1,3 +1,8 @@
+"""Tests for HeterogeneousGNN construction and forward pass across conv types
+(rgcn, rgat, han)."""
+
+from typing import Dict, Tuple
+
 import torch
 import pytest
 
@@ -20,7 +25,7 @@ NUM_RELATIONS = len(EDGE_TYPES)
 
 
 @pytest.fixture
-def edge_index_dict():
+def edge_index_dict() -> Dict[Tuple[str, str, str], torch.Tensor]:
     """
     Random edge indices for both ``has_actor`` and ``rev_has_actor`` relations.
 
@@ -43,7 +48,7 @@ def edge_index_dict():
 
 
 @pytest.fixture
-def x_dict():
+def x_dict() -> Dict[str, torch.Tensor]:
     """
     Random node feature tensors for event and actor node types.
 

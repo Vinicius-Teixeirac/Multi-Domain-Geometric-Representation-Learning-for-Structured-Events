@@ -1,4 +1,4 @@
-# src/models/bert/datamodule.py
+"""DataModule wiring TextPipeline outputs into BertDataset DataLoaders."""
 
 from pathlib import Path
 from typing import Optional, Tuple

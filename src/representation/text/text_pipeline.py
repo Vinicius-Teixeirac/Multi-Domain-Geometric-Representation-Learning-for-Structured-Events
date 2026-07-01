@@ -1,9 +1,16 @@
-# src/representation/text/text_pipeline.py
+"""Tokenizes verbalized event text into BERT-ready tensors.
+
+Consumes the sentences produced by text_builder.py (a DataFrame with 'text'
+and 'label' columns) and turns them into HuggingFace tokenizer encodings
+plus a label tensor for BertDataset.
+"""
 
 import torch
 import pandas as pd
 from transformers import AutoTokenizer
 from typing import Dict, Tuple
+
+__all__ = ["TextPipeline"]
 
 
 class TextPipeline:
@@ -47,6 +54,19 @@ class TextPipeline:
         """
         Convert a dataframe with 'text' and 'label' columns
         into BERT encodings and label tensor.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Must contain 'text' (str) and 'label' (int) columns.
+
+        Returns
+        -------
+        tuple of (encodings, labels)
+            encodings : dict[str, torch.Tensor]
+                Tokenizer output (input_ids, attention_mask, etc.), each of
+                shape (N, max_length).
+            labels : torch.LongTensor of shape (N,)
         """
 
         self._validate_df(df)

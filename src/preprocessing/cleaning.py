@@ -1,4 +1,10 @@
-# src/preprocessing/cleaning.py
+"""Codebook-faithful cleaning of raw GDELT event samples.
+
+Runs after raw data is loaded and before splitting: validates and selects
+columns against the official GDELT codebook, casts each column to its
+canonical dtype, normalizes classification targets, and applies per-column
+missing-value policies declared in COLUMNS_SCHEMA.
+"""
 
 from pathlib import Path
 from typing import Iterable, Optional, List
@@ -21,6 +27,7 @@ from src.utils.experiments_logging import get_logger
 
 logger = get_logger(__name__)
 
+__all__ = ["MissingValueHandler", "DataCleaner"]
 
 
 # ---------------------------------------------------------------------
@@ -30,6 +37,16 @@ class MissingValueHandler:
     """Apply per-column missing-value policies declared in COLUMNS_SCHEMA."""
 
     def __init__(self, columns_schema: dict):
+        """
+        Parameters
+        ----------
+        columns_schema : dict
+            Mapping from column name to schema metadata; each entry's
+            optional "missing" key selects the policy applied by `apply`:
+            "explicit" (fill with NULL_TOKEN), "indicator" (add a
+            `{col}__is_missing` flag column, keeping NaNs in place), or
+            "error" (raise if any value is missing).
+        """
         self.columns_schema = columns_schema
 
     def apply(self, df: pd.DataFrame) -> pd.DataFrame:

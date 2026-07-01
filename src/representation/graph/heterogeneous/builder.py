@@ -1,4 +1,11 @@
-# src/representation/graph/heterogeneous/builder.py
+"""Constructs the heterogeneous, multi-typed event graph (HeteroData).
+
+Builds one graph per split from the entity parquets produced by
+`src/preprocessing/entity_construction.py`: an "event" node type connected to
+"actor1"/"actor2"/"geo"/"day" node types via typed (and reverse-typed) edges,
+suitable for RGCN/RGAT/HAN-style heterogeneous GNNs.
+"""
+
 from pathlib import Path
 from typing import Dict
 

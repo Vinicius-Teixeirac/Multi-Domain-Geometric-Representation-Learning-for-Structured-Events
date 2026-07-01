@@ -1,4 +1,17 @@
 # src/runners/bert_runner.py
+"""
+Runner for the BERT text-classification baseline.
+
+Pipeline:
+  1. Data module setup (tokenizes cached event text, builds train/val/test splits)
+  2. Model construction (pretrained transformer + classification head)
+  3. Training via shared train_model()
+  4. Evaluation via evaluate_model()
+  5. Results persisted to RESULTS_DIR
+
+Usage (from main.py or standalone):
+    python -m src.runners.bert_runner --config path/to/bert_config.yaml
+"""
 
 import argparse
 import time
@@ -26,8 +39,21 @@ logger = get_logger(__name__)
 # ------------------------------------------------------------------
 def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Run a single BERT training + evaluation experiment
-    with full result tracking.
+    Run a single BERT training + evaluation experiment with full result tracking.
+
+    Parameters
+    ----------
+    cfg : dict
+        Configuration dict (from a BERT YAML config) with at least
+        "dataset", "training", "model", and "text" sections; may also carry
+        "exp_id", "seed", and "split_tag" injected by main.py.
+
+    Returns
+    -------
+    dict
+        Either ``{"skipped": True, ...}`` if an idempotent result already
+        exists for ``exp_id``, or the full results dict (metrics, confusion
+        matrix, architecture, training config, and artifact paths).
     """
 
     start_time = time.perf_counter()
@@ -154,7 +180,7 @@ def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
 # ------------------------------------------------------------------
 # CLI wrapper (thin, unchanged behavior)
 # ------------------------------------------------------------------
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse the --config CLI argument and return the parsed namespace."""
     parser = argparse.ArgumentParser(description="Run BERT on GDELT")
     parser.add_argument(

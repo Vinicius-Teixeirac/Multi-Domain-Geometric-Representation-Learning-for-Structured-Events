@@ -1,4 +1,12 @@
 # src/runners/tabular_runner.py
+"""
+Runner for the tabular feature-engineering pipeline stage.
+
+Wraps TabularPipeline with an idempotency check: feature parquet files
+are only (re)built when missing or when ``force=True``. Features
+produced here are consumed by the MLP and (when node_features="all")
+GNN runners.
+"""
 
 from src.config.paths import FEATURES_DATA
 from src.representation.tabular.tabular_pipeline import TabularPipeline
@@ -12,7 +20,7 @@ def ensure_tabular_features(
     *,
     split_tag: str = "default",
     force: bool = False,
-) -> None:
+) -> dict:
     """
     Ensure tabular features exist for a dataset and split tag.
 
@@ -23,6 +31,24 @@ def ensure_tabular_features(
             test_{tag}_features.parquet
 
     Idempotent unless force=True.
+
+    Parameters
+    ----------
+    dataset : str
+        Dataset name (stem of the parquet file in data/raw/).
+    split_tag : str
+        Split identifier whose train/valid/test feature files are checked
+        and (re)built.
+    force : bool
+        If True, rebuild tabular features even if the expected files
+        already exist. If False (default), an existing complete set is
+        reused.
+
+    Returns
+    -------
+    dict
+        ``{"skipped": bool, "dataset": str, "split_tag": str}`` indicating
+        whether feature engineering was skipped due to existing artifacts.
     """
 
     logger.info(

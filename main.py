@@ -1,4 +1,16 @@
 # main.py
+"""
+Project entry point / pipeline orchestrator.
+
+Discovers datasets in data/raw/, then for each one runs the shared
+preprocessing stages (cleaning, splitting, entity construction, tabular
+feature engineering, text building) followed by one train + evaluate
+run per supplied model config (MLP, GNN, BERT, multi-domain geometric
+model). All stages are idempotent and reuse cached artifacts unless
+``--force`` is passed. See ``parse_args`` for the CLI surface and
+``main`` for the full orchestration loop.
+"""
+
 from pathlib import Path
 import argparse
 import yaml
@@ -36,7 +48,20 @@ CAMEO_DICTIONARIES = {
 # Helpers
 # --------------------------------------------------
 def load_configs(paths_list: list[str]) -> list[dict]:
-    """Load YAML config files and inject _config_path into each dict."""
+    """Load YAML config files and inject _config_path into each dict.
+
+    Parameters
+    ----------
+    paths_list : list[str]
+        Paths to YAML config files (e.g. from --mlp-configs); may be
+        empty or None, in which case an empty list is returned.
+
+    Returns
+    -------
+    list[dict]
+        One dict per config file, each with an added "_config_path" key
+        pointing back to its source file.
+    """
     configs = []
     for path in (paths_list or []):
         with open(path) as f:
@@ -47,14 +72,42 @@ def load_configs(paths_list: list[str]) -> list[dict]:
 
 
 def hash_config(cfg: dict) -> str:
-    """Return an 8-char MD5 hex digest of the config (excluding the file path key)."""
+    """Return an 8-char MD5 hex digest of the config (excluding the file path key).
+
+    Parameters
+    ----------
+    cfg : dict
+        Fully-assembled experiment config (base YAML config merged with
+        dataset, seed, and split_tag); the "_config_path" key is excluded
+        from hashing since it does not affect the experiment itself.
+
+    Returns
+    -------
+    str
+        8-char hex digest used as the experiment's exp_id suffix. 8 hex
+        chars (32 bits) is enough collision resistance to distinguish
+        experiment configs in this run's namespace - this is not a
+        security or cryptographic use of MD5, just a short, stable ID.
+    """
     hashable = {k: v for k, v in cfg.items() if k != "_config_path"}
     raw = json.dumps(hashable, sort_keys=True).encode()
     return hashlib.md5(raw).hexdigest()[:8]
 
 
 def discover_datasets(raw_root: Path) -> list[str]:
-    """Return sorted parquet stem names found in raw_root (one stem = one dataset)."""
+    """Return sorted parquet stem names found in raw_root (one stem = one dataset).
+
+    Parameters
+    ----------
+    raw_root : Path
+        Directory to scan for dataset parquet files (typically
+        ``data/raw/``).
+
+    Returns
+    -------
+    list[str]
+        Sorted stems of all top-level ``*.parquet`` files found.
+    """
     return sorted(
         p.stem for p in raw_root.iterdir()
         if p.is_file() and p.suffix == ".parquet"
@@ -62,12 +115,27 @@ def discover_datasets(raw_root: Path) -> list[str]:
 
 
 def _split_tag(base_cfg: dict, seed: int) -> str:
-    """Construct a split tag that encodes the base tag and the random seed."""
+    """Construct a split tag that encodes the base tag and the random seed.
+
+    Parameters
+    ----------
+    base_cfg : dict
+        A model config dict; the base tag is read from
+        ``base_cfg["data"]["split"]["tag"]`` (defaulting to "default").
+    seed : int
+        Random seed to encode into the tag, so different seeds get
+        distinct, non-colliding split artifacts.
+
+    Returns
+    -------
+    str
+        Combined tag of the form ``"{base}_s{seed}"``.
+    """
     base = base_cfg.get("data", {}).get("split", {}).get("tag", "default")
     return f"{base}_s{seed}"
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """
     Parse command-line arguments for the GDELT experiment runner.
 
@@ -80,7 +148,7 @@ def parse_args():
     """
     parser = argparse.ArgumentParser("GDELT experiment runner")
 
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--seed", type=int, default=42)  # repo-wide reproducibility default
 
     parser.add_argument(
         "--datasets",

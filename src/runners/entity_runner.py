@@ -1,4 +1,11 @@
 # src/runners/entity_runner.py
+"""
+Runner for the graph-entity-ID construction pipeline stage.
+
+Wraps build_event_entities with an idempotency check: entity ID parquet
+files are only (re)built when missing or when ``force=True``. Entity IDs
+are consumed downstream by the GNN and multi-domain graph representations.
+"""
 
 from src.config.paths import ENTITIES_DATA
 from src.preprocessing.entity_construction import build_event_entities
@@ -11,11 +18,28 @@ def ensure_entities(
     dataset: str,
     split_tag: str = "default",
     force: bool = False,
-) -> None:
+) -> dict:
     """
     Ensure graph entity IDs exist for a dataset.
 
     This is a wrapper around build_event_entities with idempotency.
+
+    Parameters
+    ----------
+    dataset : str
+        Dataset name (stem of the parquet file in data/raw/).
+    split_tag : str
+        Split identifier whose train/valid/test entity files are checked
+        and (re)built.
+    force : bool
+        If True, rebuild entity IDs even if the expected files already
+        exist. If False (default), an existing complete set is reused.
+
+    Returns
+    -------
+    dict
+        ``{"skipped": bool, "dataset": str, "split_tag": str}`` indicating
+        whether construction was skipped due to existing artifacts.
     """
 
     logger.info(f"[ENTITIES] Dataset={dataset} | tag={split_tag}")

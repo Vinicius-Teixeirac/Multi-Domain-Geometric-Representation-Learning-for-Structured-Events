@@ -1,7 +1,13 @@
-# src/representation/graph/indexing.py
+"""Deterministic, content-stable integer indexing for graph node IDs.
+
+Shared by the homogeneous and heterogeneous builders so that node index
+assignment never depends on input row order.
+"""
 
 from typing import Dict
 import pandas as pd
+
+__all__ = ["build_index_map", "add_node_index"]
 
 
 def build_index_map(values) -> Dict:

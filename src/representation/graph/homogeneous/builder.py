@@ -1,4 +1,11 @@
-# src/representation/graph/homogeneous/builder.py
+"""Constructs the homogeneous (single node-type) event graph.
+
+Builds one graph per split from the entity parquets: each event is a node,
+and events sharing an entity key (actor, geo, day) are linked via
+build_binary_edges_from_shared_keys. No node features are attached here;
+they are loaded separately by homogeneous/loaders.py.
+"""
+
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 import json

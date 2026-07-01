@@ -1,4 +1,9 @@
-# src/preprocessing/entity_construction.py
+"""Builds graph-entity IDs (actors, geo locations) from split event tables.
+
+Runs after splitting: derives composite string IDs for Actor1, Actor2, and
+event geography by concatenating their identifying columns, so that graph
+builders can later join events sharing the same actor/location entity.
+"""
 
 from pathlib import Path
 from typing import List, Dict
@@ -46,9 +51,29 @@ def build_event_entities(
     split_tag: str = "default",
 ) -> None:
     """
-    Builds graph-only entity IDs *per split* (event-inductive).
+    Build graph-only entity IDs *per split* (event-inductive).
 
-    Also saves metadata with entity cardinalities for validation.
+    For each of train/valid/test under SPLITS_DATA/{dataset_name}, derives
+    Actor1ID, Actor2ID, and Event_GeoID composite keys and writes them
+    alongside GlobalEventID/Day/QuadClass. Missing splits are skipped with a
+    warning rather than raising, since not every dataset has a validation
+    split (see Splitter.run's `valid_size=None` path).
+
+    Parameters
+    ----------
+    dataset_name : str
+        Dataset directory name (must exist under SPLITS_DATA).
+    split_tag : str
+        Split-configuration tag matching the one used by Splitter.run, used
+        to locate `{split}_{split_tag}.parquet` input files.
+
+    Outputs (per split, under ENTITIES_DATA/{dataset_name})
+    ---------------------------------------------------------------
+    {split}_{split_tag}_entities.parquet
+        Event rows with Actor1ID/Actor2ID/Event_GeoID columns attached.
+    {split}_{split_tag}_metadata.json
+        Entity cardinalities (num_actor1_entities, num_actor2_entities,
+        num_geo_entities, num_events) used to validate graph construction.
     """
 
     in_dir = SPLITS_DATA / dataset_name

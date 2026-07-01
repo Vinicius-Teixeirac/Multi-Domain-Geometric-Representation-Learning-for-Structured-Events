@@ -1,4 +1,9 @@
-# src/representation/graph/homogeneous/edge_rules.py
+"""Shared-key edge construction for the homogeneous event graph.
+
+Two event nodes are connected if they share at least one entity key value
+(e.g. the same Actor1ID), with per-key neighbour sampling to bound degree.
+"""
+
 from typing import Dict, Set, Optional, Tuple, Iterable
 
 import numpy as np

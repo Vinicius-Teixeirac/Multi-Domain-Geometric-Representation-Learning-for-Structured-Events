@@ -1,3 +1,5 @@
+"""Tests for TabularInputEncoder: construction, output_dim sizing rules, forward pass, and dropout behavior."""
+
 import torch
 import pytest
 

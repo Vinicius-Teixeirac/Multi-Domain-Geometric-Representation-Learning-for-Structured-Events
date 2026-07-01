@@ -1,3 +1,6 @@
+"""Tests for HomogeneousGNN/HeterogeneousGNN forward_batch: device handling,
+featureless mode, encoder integration, and seed-node slicing."""
+
 import torch
 import pytest
 from torch_geometric.data import Data, HeteroData
@@ -103,7 +106,7 @@ class TestHomogeneousGNNForwardBatch:
 # ── Heterogeneous GNN ────────────────────────────────────────────
 
 class TestHeterogeneousGNNForwardBatch:
-    def _make_hetero_data(self, with_encoder=False):
+    def _make_hetero_data(self, with_encoder: bool = False) -> HeteroData:
         """
         Build a minimal ``HeteroData`` object for event–actor graphs.
 

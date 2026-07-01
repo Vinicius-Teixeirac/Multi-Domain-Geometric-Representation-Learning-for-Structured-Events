@@ -71,6 +71,9 @@ def run_multi_domain(
 
     config_stem = Path(cfg.get("_config_path", "unknown")).stem
     descriptor = f"{dataset_name}_{split_tag}_{config_stem}_seed{seed}"
+    # 8 hex chars (32 bits) is enough collision resistance to distinguish
+    # experiment configs in this run's namespace - this is not a security
+    # or cryptographic use of MD5, just a short, stable experiment ID.
     exp_id = "multi_domain_" + hashlib.md5(descriptor.encode()).hexdigest()[:8]
 
     # --- Idempotency: central check (before any expensive setup)

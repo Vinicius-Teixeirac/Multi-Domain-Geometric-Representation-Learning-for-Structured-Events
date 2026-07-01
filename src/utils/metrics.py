@@ -1,3 +1,5 @@
+"""Classification metric computation shared by all model runners' evaluation step."""
+
 from typing import Dict
 
 import numpy as np
@@ -40,6 +42,9 @@ def compute_classification_metrics(
     return {
         "accuracy": accuracy_score(y, preds),
         "f1_macro": f1_score(y, preds, average="macro"),
+        # f1_micro is mathematically identical to accuracy in the single-label
+        # multi-class setting, so it's kept here (disabled) only as a reference
+        # for readers unfamiliar with that equivalence, not as a metric gap.
         # "f1_micro": f1_score(y, preds, average="micro"),
         "f1_weighted": f1_score(y, preds, average="weighted"),
         "precision_macro": precision_score(y, preds, average="macro", zero_division=0),

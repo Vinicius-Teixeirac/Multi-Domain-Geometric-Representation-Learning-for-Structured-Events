@@ -1,3 +1,5 @@
+"""Tests for EventDataset: length, __getitem__ format, and the zero-numeric-features edge case."""
+
 import torch
 import pytest
 

@@ -1,4 +1,11 @@
-# src/representation/tabular/tabular_pipeline.py
+"""Fits and applies schema-driven tabular encoders across dataset splits.
+
+Orchestrates encoding.py and transformers.py according to COLUMNS_SCHEMA and
+ENCODING_SCHEMA: encoders are fit on the train split only, then reused
+(never refit) on valid/test to prevent leakage, with each fitted artifact
+persisted to disk for later inference.
+"""
+
 from __future__ import annotations
 
 import warnings

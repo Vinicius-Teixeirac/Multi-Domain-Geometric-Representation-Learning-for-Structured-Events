@@ -1,4 +1,10 @@
-# src/representation/graph/heterogeneous/node_features.py
+"""Resolves and builds node feature tensors for the heterogeneous event graph.
+
+Decides which tabular columns become event-node features under a given
+policy, then converts them into the categorical-index / numeric tensors
+expected by TabularInputEncoder.
+"""
+
 from typing import Dict, List, Tuple, Optional
 
 import pandas as pd
@@ -36,7 +42,16 @@ def resolve_hetero_node_features(
             }
         }
 
-    Notes:
+    Parameters
+    ----------
+    policy : str
+        "none" or "all" (see policy list above).
+    features_df : pd.DataFrame
+        Encoded event feature table (output of TabularPipeline) used to
+        enumerate available columns when policy == "all".
+
+    Notes
+    -----
     - Only 'event' nodes are eligible for features
     - Other node types are intentionally feature-less
     """
@@ -67,10 +82,25 @@ def build_event_node_tensors(
     """
     Build event node feature tensors and metadata.
 
-    Returns:
-        x_cat: Dict[str, LongTensor]        (per-column categorical features)
-        cat_cardinalities: Dict[str, int]  (per-column vocab sizes)
-        x_num: FloatTensor | None           (stacked numeric features)
+    Parameters
+    ----------
+    features_df : pd.DataFrame
+        Encoded event feature table (output of TabularPipeline).
+    categorical_cols : list[str]
+        Columns to expose as per-column integer-index tensors.
+    numeric_cols : list[str]
+        Columns to stack into a single float tensor.
+    dataset_name : str
+        Dataset directory name, used to locate cardinality artifacts.
+    split_tag : str
+        Split-configuration tag identifying which artifact set to load.
+
+    Returns
+    -------
+    tuple of (x_cat, cat_cardinalities, x_num)
+        x_cat : dict[str, LongTensor]        per-column categorical features
+        cat_cardinalities : dict[str, int]   per-column vocab sizes
+        x_num : FloatTensor or None          stacked numeric features
     """
 
     # --------------------------------------------------

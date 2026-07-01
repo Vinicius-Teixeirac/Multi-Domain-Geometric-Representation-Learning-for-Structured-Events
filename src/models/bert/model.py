@@ -1,4 +1,6 @@
 # src/models/bert/model.py
+from typing import Optional
+
 import torch
 import torch.nn as nn
 from transformers import AutoModel
@@ -52,7 +54,11 @@ class BertForQuadClass(nn.Module):
         hidden_size = self.bert.config.hidden_size
         self.classifier = nn.Linear(hidden_size, num_classes)
 
-    def forward(self, input_ids, attention_mask):
+    def forward(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+    ) -> torch.Tensor:
         """
         Run BERT and return class logits from the [CLS] token.
 
@@ -72,7 +78,11 @@ class BertForQuadClass(nn.Module):
         cls_embedding = outputs.last_hidden_state[:, 0]
         return self.classifier(cls_embedding)
 
-    def forward_batch(self, batch, device):
+    def forward_batch(
+        self,
+        batch: dict,
+        device: str,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Unpack a BertDataset batch, move tensors to device, and return (logits, targets).
 
@@ -97,7 +107,7 @@ class BertForQuadClass(nn.Module):
     # --------------------------------------------------
 
     @staticmethod
-    def _get_layer_num(param_name: str):
+    def _get_layer_num(param_name: str) -> Optional[int]:
         """
         Extract layer number from parameter name.
         Returns None if not a transformer layer.

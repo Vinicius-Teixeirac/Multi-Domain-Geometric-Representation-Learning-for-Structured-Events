@@ -30,6 +30,14 @@ import torch.nn.functional as F
 
 from .riemannian import SphericalLinear, SphereReLU, log_north, exp_north
 
+__all__ = [
+    "HypersphericalEncoder",
+    "ProjectedEncoder",
+    "EuclideanEncoder",
+    "RegionAwareEncoder",
+    "build_geo_encoder",
+]
+
 _DEG_TO_RAD: float = torch.pi / 180.0  # conversion factor for geodetic coordinates
 
 
@@ -308,6 +316,11 @@ def build_geo_encoder(cfg: dict, region_cardinality: int = 1) -> nn.Module:
     cfg               : model.geo sub-config (from YAML)
     region_cardinality: total country codes + 1 for unknown.
                         Only used when type == 'region_aware'.
+
+    Returns
+    -------
+    nn.Module
+        The instantiated geo encoder (one of the classes in ``_GEO_REGISTRY``).
     """
     encoder_type = cfg.get("type", "hyperspherical")
     if encoder_type not in _GEO_REGISTRY:

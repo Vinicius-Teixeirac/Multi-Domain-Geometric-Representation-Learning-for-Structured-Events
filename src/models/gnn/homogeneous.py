@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch_geometric.data import Data
 from torch_geometric.nn import GINConv, SAGEConv, GATConv
 
 
@@ -127,12 +128,29 @@ class HomogeneousGNN(nn.Module):
         """Apply the appropriate activation for the current conv type (ELU for GAT, ReLU otherwise)."""
         return F.elu(x) if self.conv_type == "gat" else F.relu(x)
 
-    def forward_batch(self, batch, device):
+    def forward_batch(
+        self,
+        batch: Data,
+        device: str,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Move a PyG batch to device, run forward, and return (logits, targets).
 
         Slices logits and targets to batch_size when NeighborLoader is used
         (seed nodes only, not sampled neighbourhood nodes).
+
+        Parameters
+        ----------
+        batch : torch_geometric.data.Data (or Batch, its subclass)
+            A (possibly neighbour-sampled) homogeneous graph batch.
+        device : str
+            Target device string.
+
+        Returns
+        -------
+        tuple of (logits, targets)
+            Both sliced to the seed-node batch size (if applicable) and
+            moved to device.
         """
         batch = batch.to(device)
 

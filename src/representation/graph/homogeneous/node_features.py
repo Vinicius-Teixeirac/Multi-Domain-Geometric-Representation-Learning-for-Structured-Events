@@ -1,10 +1,14 @@
-# src/representation/graph/homogeneous/node_features.py
+"""Resolves node feature column groups for the homogeneous event graph.
+
+Decides which tabular columns become node features under a given policy,
+splitting them into categorical/numeric groups for TabularInputEncoder.
+"""
 
 from typing import Dict, List
 
 import pandas as pd
 
-from src.representation.schema.columns_schema import COLUMNS_SCHEMA
+from src.config.schema.columns_schema import COLUMNS_SCHEMA
 
 
 # ---------------------------------------------------------------------
@@ -21,6 +25,14 @@ def resolve_node_features(
     Policies:
     - "none": no node features (structure-only GNN)
     - "all":  all tabular features (excluding id + target)
+
+    Parameters
+    ----------
+    policy : str
+        "none" or "all" (see policy list above).
+    features_df : pd.DataFrame
+        Encoded event feature table (output of TabularPipeline) used to
+        enumerate available columns when policy == "all".
 
     Returns:
         {

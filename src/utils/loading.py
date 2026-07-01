@@ -1,4 +1,5 @@
-# src/utils/loading.py
+"""Shared file-loading helpers with consistent error handling across the pipeline."""
+
 import json
 from pathlib import Path
 from typing import Any, Dict
@@ -13,6 +14,21 @@ def load_json(path: Path | str) -> Dict[str, Any]:
 
     Centralized to avoid repeated boilerplate and to
     standardize encoding / error handling.
+
+    Parameters
+    ----------
+    path : Path or str
+        Path to the JSON file.
+
+    Returns
+    -------
+    dict
+        Parsed JSON contents.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist.
     """
     path = Path(path)
 
@@ -33,6 +49,21 @@ def load_split(
 
     Expected path:
         {data_dir}/{dataset_name}/{split}_{split_tag}.parquet
+
+    Parameters
+    ----------
+    data_dir : Path
+        Root directory containing per-dataset split subdirectories.
+    dataset_name : str
+        Dataset subdirectory name.
+    split : str
+        Split name ('train', 'valid', or 'test').
+    split_tag : str
+        Split-configuration tag identifying which regime's parquet to load.
+
+    Returns
+    -------
+    pd.DataFrame
     """
     split_dir = data_dir / dataset_name
     filename = f"{split}_{split_tag}.parquet"

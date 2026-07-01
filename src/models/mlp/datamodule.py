@@ -1,4 +1,5 @@
-# src/models/mlp/datamodule.py
+"""DataModule wiring TabularPipeline outputs into EventDataset DataLoaders."""
+
 from pathlib import Path
 from typing import Dict, List, Optional
 

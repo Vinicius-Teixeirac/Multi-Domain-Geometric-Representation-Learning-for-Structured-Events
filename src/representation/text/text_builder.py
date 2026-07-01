@@ -1,9 +1,25 @@
-# src/representation/text/text_builder.py
+"""Verbalizes structured GDELT event rows into natural-language sentences.
+
+Turns each event's actor/geo/day columns into a tagged sentence
+([WHO]/[WHOM]/[WHERE]/[WHEN]) for the BERT text-classification baseline;
+build_event_texts is the entry point used by text_runner.py.
+"""
+
 import pandas as pd
 from datetime import datetime
 from typing import Optional
 
 from src.utils.constants import INTERACTION_VERBS
+
+__all__ = [
+    "translate_code",
+    "format_day",
+    "normalize_name",
+    "verbalize_actor",
+    "verbalize_event_location",
+    "event_to_text",
+    "build_event_texts",
+]
 
 def translate_code(code: object, dictionary: dict) -> Optional[str]:
     """Return the human-readable label for a CAMEO code, or None if missing/null."""

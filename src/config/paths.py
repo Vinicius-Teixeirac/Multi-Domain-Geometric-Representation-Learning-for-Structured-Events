@@ -1,7 +1,12 @@
-# src/config/paths.py
+"""Centralized filesystem layout for the pipeline.
 
-# Importing this module guarantees all project directories exist.
-# This file is intentionally side-effectful.
+Every stage (preprocessing, representation, training, evaluation) imports its
+input/output directories from here instead of hardcoding paths. Importing
+this module guarantees all project directories exist: the loop at the bottom
+of the file creates them on import, so downstream code can write to any of
+these paths without a separate `mkdir` step. This file is intentionally
+side-effectful.
+"""
 
 from pathlib import Path
 
@@ -29,6 +34,21 @@ ENTITIES_DATA = DATA_ROOT / "entities"    # Node entities
 # -----------------------------------------------------------------------------
 LOGS_DIR = PROJECT_ROOT / "logs"
 RESULTS_DIR = PROJECT_ROOT / "results"
+
+__all__ = [
+    "PROJECT_ROOT",
+    "DATA_ROOT",
+    "RAW_DATA",
+    "PROCESSED_DATA",
+    "SPLITS_DATA",
+    "FEATURES_DATA",
+    "GRAPHS_DATA",
+    "TEXT_DATA",
+    "ARTIFACTS_DATA",
+    "ENTITIES_DATA",
+    "LOGS_DIR",
+    "RESULTS_DIR",
+]
 
 # -----------------------------------------------------------------------------
 # Create folders if missing

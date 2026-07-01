@@ -1,4 +1,9 @@
-# src/representation/graph/heterogeneous/edge_rules.py
+"""Vectorized construction of event<->component bidirectional edge indices.
+
+Used by heterogeneous/builder.py to link event nodes to each of their
+actor1/actor2/geo/day component nodes without a per-row Python loop.
+"""
+
 import torch
 import pandas as pd
 import numpy as np
@@ -13,11 +18,28 @@ def build_event_component_edges(
     component_index: Dict,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
-    Builds bidirectional edges between events and components.
+    Build bidirectional edges between events and one component type.
 
-    Returns:
-        - event_to_component edge_index
-        - component_to_event edge_index (reverse relation)
+    Rows with a null component value are dropped (that event simply gets no
+    edge for this relation) rather than raising, since not every event has
+    every component populated.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Entity table containing at least `event_idx_col` and `component_col`.
+    event_idx_col : str
+        Column holding the integer event node index (see indexing.add_node_index).
+    component_col : str
+        Column holding the raw component entity ID (e.g. "Actor1ID").
+    component_index : dict
+        Mapping from raw component ID to its integer node index within this split.
+
+    Returns
+    -------
+    tuple of (torch.Tensor, torch.Tensor), each of shape (2, E)
+        (event_to_component edge_index, component_to_event edge_index),
+        i.e. the forward relation and its reverse.
     """
 
     # --------------------------------------------------

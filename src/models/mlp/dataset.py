@@ -26,6 +26,18 @@ class EventDataset(Dataset):
         numeric_cols: List[str],
         target_col: str = "QuadClass",
     ):
+        """
+        Parameters
+        ----------
+        dataframe : pd.DataFrame
+            Encoded event feature table (output of the TabularPipeline).
+        categorical_cols : list[str]
+            Column names to expose as per-column LongTensors for embedding lookup.
+        numeric_cols : list[str]
+            Column names to stack into a single FloatTensor of continuous features.
+        target_col : str
+            Name of the classification target column.
+        """
         self.target_col = target_col
         self.categorical_cols = categorical_cols
         self.numeric_cols = numeric_cols

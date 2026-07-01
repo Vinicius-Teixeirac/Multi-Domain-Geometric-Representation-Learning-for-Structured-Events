@@ -14,8 +14,8 @@ class EventMLP(nn.Module):
         self,
         categorical_cardinalities: Dict[str, int],
         numeric_dim: int,
-        hidden_dims: list = [256, 128],
-        num_classes: int = None,
+        hidden_dims: list = [256, 128],  # mutable default is safe here: read-only, never mutated
+        num_classes: Optional[int] = None,
         dropout: float = 0.2,
     ):
         """
@@ -27,7 +27,7 @@ class EventMLP(nn.Module):
             Number of continuous input features.
         hidden_dims : list[int]
             Widths of the hidden layers in the MLP feature extractor.
-        num_classes : int
+        num_classes : int or None
             Number of output classes.
         dropout : float
             Dropout probability applied after each hidden layer.
@@ -77,7 +77,9 @@ class EventMLP(nn.Module):
         x = self.feature_extractor(x)
         return self.classifier(x)
 
-    def forward_batch(self, batch, device):
+    def forward_batch(
+        self, batch: tuple, device: str
+    ) -> "tuple[torch.Tensor, torch.Tensor]":
         """
         Unpack a DataLoader batch, move tensors to device, and return (logits, targets).
 

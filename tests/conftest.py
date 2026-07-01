@@ -1,4 +1,12 @@
+"""Shared pytest fixtures and reference-implementation helpers for the test suite.
+
+Provides small synthetic tensors/DataFrames (rather than real GDELT data) so
+model/dataset/encoder tests run fast and deterministically.
+"""
+
 import math
+from typing import Dict
+
 import pytest
 import torch
 import pandas as pd
@@ -16,13 +24,13 @@ BATCH_SIZE = 8
 # ── Fixtures ──────────────────────────────────────────────────────
 
 @pytest.fixture
-def cardinalities():
+def cardinalities() -> Dict[str, int]:
     """Return a copy of CATEGORICAL_CARDINALITIES for use in encoder tests."""
     return dict(CATEGORICAL_CARDINALITIES)
 
 
 @pytest.fixture
-def sample_x_cat():
+def sample_x_cat() -> Dict[str, torch.Tensor]:
     """
     Random integer tensors for each categorical column (shape ``(BATCH_SIZE,)``).
 
@@ -38,7 +46,7 @@ def sample_x_cat():
 
 
 @pytest.fixture
-def sample_x_num():
+def sample_x_num() -> torch.Tensor:
     """
     Random numeric feature tensor of shape ``(BATCH_SIZE, NUMERIC_DIM)``.
 
@@ -51,7 +59,7 @@ def sample_x_num():
 
 
 @pytest.fixture
-def sample_dataframe():
+def sample_dataframe() -> pd.DataFrame:
     """
     Small synthetic DataFrame with two categorical columns, four numeric columns,
     and a QuadClass label column (32 rows, seed 0).
@@ -76,7 +84,7 @@ def sample_dataframe():
 
 
 @pytest.fixture
-def sample_dataframe_no_numeric():
+def sample_dataframe_no_numeric() -> pd.DataFrame:
     """
     Small synthetic DataFrame with only categorical and label columns (16 rows).
 

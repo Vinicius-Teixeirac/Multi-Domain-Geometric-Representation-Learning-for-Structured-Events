@@ -1,4 +1,11 @@
-# src/representation/graph/base.py
+"""Shared abstract interface for split-wise graph constructors.
+
+Both the homogeneous and heterogeneous builders (representation/graph/
+homogeneous/, representation/graph/heterogeneous/) implement GraphBuilder so
+runners can build a graph for a given split without knowing which node/edge
+topology is in use.
+"""
+
 from abc import ABC, abstractmethod
 from typing import Dict
 

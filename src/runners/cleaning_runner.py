@@ -1,4 +1,13 @@
 # src/runners/cleaning_runner.py
+"""
+Runner for the data-cleaning pipeline stage.
+
+Wraps DataCleaner with an idempotency check: if a cleaned parquet already
+exists for a given sample, cleaning is skipped unless ``force=True``. This
+is the first stage in main.py's per-dataset pipeline, upstream of
+splitting, entity construction, tabular/text feature building, and model
+training.
+"""
 
 from pathlib import Path
 from typing import Iterable, Optional, List
@@ -19,6 +28,20 @@ def ensure_cleaned(
 ) -> Path:
     """
     Ensure that a cleaned dataset exists.
+
+    Parameters
+    ----------
+    sample_name : str
+        Name of the raw sample (stem of the parquet file in data/raw/).
+    columns : Iterable[str], optional
+        Subset of columns to keep during cleaning; None keeps all
+        recognized columns.
+    target_cols : List[str], optional
+        Label columns to normalize (e.g. remapping QuadClass 1-4 to 0-3).
+    force : bool
+        If True, re-run cleaning even if the cleaned parquet already
+        exists, overwriting it. If False (default), an existing cleaned
+        file is reused as-is.
 
     Returns
     -------

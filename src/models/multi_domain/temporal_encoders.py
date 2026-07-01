@@ -26,6 +26,14 @@ import torch.nn as nn
 
 from .riemannian import SphericalLinear, log_north, exp_north
 
+__all__ = [
+    "ProductManifoldEncoder",
+    "LearnablePeriodEncoder",
+    "FourierEncoder",
+    "RiemannianProductEncoder",
+    "build_temporal_encoder",
+]
+
 _PERIOD_ANNUAL: float = 365.0  # calendar days per year
 _PERIOD_WEEKLY: float = 7.0    # calendar days per week
 
@@ -317,6 +325,11 @@ def build_temporal_encoder(cfg: dict) -> nn.Module:
     Parameters
     ----------
     cfg : temporal sub-config (model.temporal in YAML)
+
+    Returns
+    -------
+    nn.Module
+        The instantiated temporal encoder (one of the classes in ``_TEMPORAL_REGISTRY``).
     """
     encoder_type = cfg.get("type", "product_manifold")
     if encoder_type not in _TEMPORAL_REGISTRY:

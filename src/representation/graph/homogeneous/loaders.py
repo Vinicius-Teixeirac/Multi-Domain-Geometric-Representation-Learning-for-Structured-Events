@@ -1,4 +1,10 @@
-# src/models/gnn/loaders/homogeneous.py
+"""Builds inductive DataLoaders over the homogeneous event graph.
+
+Wraps HomogeneousEventGraphBuilder + node feature resolution to produce
+train/valid/test loaders (full-batch or NeighborLoader-sampled) for
+homogeneous GNNs, persisting each split's built graph to GRAPHS_DATA.
+"""
+
 from typing import List, Tuple, Optional, Dict
 import json
 
@@ -186,7 +192,33 @@ def _build_split_loader(
     seed: int = 42,
 ):
     """
-    Builds a single inductive-safe homogeneous GNN loader.
+    Build a single inductive-safe homogeneous GNN loader for one split.
+
+    Parameters
+    ----------
+    dataset_name : str
+        Dataset directory name.
+    split : str
+        Split name ('train', 'valid', or 'test').
+    edge_keys : list[str]
+        Entity columns used to define shared-key edges.
+    batch_size : int
+        Seed-node batch size (ignored when num_neighbors is None).
+    num_neighbors : list[int] or None
+        Neighbour fanout per GNN layer; None means full-batch loading.
+    node_feature_policy : str
+        Forwarded to _build_node_features ("none" or "all").
+    shuffle : bool
+        Whether to shuffle seed nodes each epoch (True for train, False
+        for valid/test).
+    split_tag : str
+        Split-configuration tag identifying which parquet/artifact set to load.
+    seed : int
+        Random seed forwarded to the graph builder's neighbour sampler.
+
+    Returns
+    -------
+    NeighborLoader or a full-batch iterator yielding the single built graph.
     """
 
     builder = HomogeneousEventGraphBuilder(

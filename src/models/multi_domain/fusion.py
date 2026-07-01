@@ -37,6 +37,14 @@ import torch.nn.functional as F
 
 from .riemannian import log_north
 
+__all__ = [
+    "ConcatMLPFusion",
+    "AttentionFusion",
+    "GatedFusion",
+    "GeometryAwareFusion",
+    "build_fusion",
+]
+
 
 # =========================================================================
 # Fusion implementations
@@ -316,6 +324,14 @@ def build_fusion(
     view_manifolds : manifold tag per view - "sphere" or "euclidean".
         Derived automatically from encoder types in MultiDomainGeometricModel.
         Only used when fusion type is "geometry_aware".
+
+    Returns
+    -------
+    nn.Module
+        The instantiated fusion module: a geometry-blind fusion module
+        (ConcatMLPFusion, AttentionFusion, GatedFusion) or, when
+        fusion type is "geometry_aware", a GeometryAwareFusion wrapping
+        one of those as its inner fusion.
     """
     if view_manifolds is None:
         view_manifolds = ["euclidean"] * len(view_dims)

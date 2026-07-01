@@ -1,4 +1,10 @@
-# src/models/gnn/loaders/heterogeneous.py
+"""Builds inductive DataLoaders over the heterogeneous event graph.
+
+Wraps HeterogeneousEventGraphBuilder + node_features to produce train/valid/
+test loaders (full-batch or NeighborLoader-sampled) for heterogeneous GNNs,
+persisting each split's built graph to GRAPHS_DATA as a side effect.
+"""
+
 from typing import List, Optional, Tuple, Union, Dict
 
 import torch
@@ -29,7 +35,22 @@ def _inject_event_node_features(
 ):
     """
     Inject tabular features + metadata into the 'event' node type
-    of a HeteroData object.
+    of a HeteroData object, in place.
+
+    Parameters
+    ----------
+    data : HeteroData
+        Graph to mutate; only the "event" node storage is touched.
+    dataset_name : str
+        Dataset directory name, used to locate the features parquet.
+    split : str
+        Split name ('train', 'valid', or 'test').
+    policy : str
+        Node feature policy: "none" (no-op) or "all" (attach every
+        non-id/non-target tabular column). See resolve_hetero_node_features.
+    split_tag : str
+        Split-configuration tag matching the one used when the features were
+        written by the tabular pipeline.
     """
 
     if policy == "none":
@@ -99,14 +120,36 @@ def _build_split_loader(
     split_tag: str = "default",
 ):
     """
-    Builds a single inductive-safe heterogeneous GNN loader for one split.
+    Build a single inductive-safe heterogeneous GNN loader for one split.
 
-    Notes:
-        - Training nodes are event nodes only
-        - num_neighbors may be:
-            * None           -> full-batch
-            * List[int]      -> same fanout for all relations
-            * Dict[str, ...] -> per-relation fanouts (PyG native)
+    Parameters
+    ----------
+    dataset_name : str
+        Dataset directory name.
+    split : str
+        Split name ('train', 'valid', or 'test').
+    batch_size : int
+        Seed-node batch size (ignored when num_neighbors is None).
+    num_neighbors : list[int] or dict or None
+        Sampling fanout: None for full-batch (no NeighborLoader), a flat
+        list for the same fanout on every relation, or a dict for
+        per-relation fanouts (passed through to PyG's NeighborLoader).
+    node_feature_policy : str
+        Forwarded to _inject_event_node_features ("none" or "all").
+    shuffle : bool
+        Whether to shuffle seed nodes each epoch (True for train, False
+        for valid/test).
+    split_tag : str
+        Split-configuration tag identifying which parquet/artifact set to load.
+
+    Returns
+    -------
+    NeighborLoader or a full-batch iterator yielding the single built graph.
+
+    Notes
+    -----
+    Training nodes are event nodes only; other node types never appear as
+    seed nodes, only as sampled neighbours.
     """
 
     # --------------------------------------------------
@@ -178,11 +221,27 @@ def make_hetero_gnn_loaders(
     split_tag: str = "default",
 ) -> Tuple:
     """
-    Creates inductive heterogeneous GNN loaders.
+    Create inductive train/valid/test heterogeneous GNN loaders.
 
-    Node feature policies:
-        - "none" -> structure-only hetero GNN
-        - "all"  -> event nodes receive tabular features
+    Parameters
+    ----------
+    dataset_name : str
+        Dataset directory name.
+    batch_size : int
+        Seed-node batch size used when num_neighbors is not None.
+    num_neighbors : list[int] or dict or None
+        Neighbor-sampling fanout; None yields full-batch loaders.
+    node_feature_policy : str
+        "none" for structure-only hetero GNN, "all" for event nodes to
+        receive tabular features (see resolve_hetero_node_features).
+    split_tag : str
+        Split-configuration tag identifying which parquet/artifact set to load.
+
+    Returns
+    -------
+    tuple of (train_loader, val_loader, test_loader)
+        val_loader is None when no validation split exists on disk for this
+        dataset/split_tag (see Splitter.run's `valid_size=None` path).
     """
 
     train_loader = _build_split_loader(

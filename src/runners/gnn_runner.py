@@ -1,8 +1,24 @@
 # src/runners/gnn_runner.py
+"""
+Runner for the GNN model family (homogeneous and heterogeneous graphs).
+
+Pipeline:
+  1. Loader construction (builds the actor/event graph and mini-batch
+     neighbor-sampling loaders for the configured graph type)
+  2. Model construction (conv type, node-feature policy, and graph type
+     jointly determine the architecture branch taken)
+  3. Training via shared train_model()
+  4. Evaluation via evaluate_model()
+  5. Results persisted to RESULTS_DIR
+
+Usage (from main.py or standalone):
+    cfg = load_yaml_config("path/to/gnn_config.yaml")
+    run_gnn(cfg)
+"""
 
 import time
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 import torch.nn as nn
 
@@ -39,9 +55,36 @@ logger = get_logger(__name__)
 # ------------------------------------------------------------------
 # Public API
 # ------------------------------------------------------------------
-def run_gnn(cfg: Dict) -> Dict:
+def run_gnn(cfg: Dict[str, Any]) -> Dict[str, Any]:
     """
     Run a single GNN experiment (homogeneous or heterogeneous).
+
+    Dispatches on ``cfg["graph"]["type"]`` ("homogeneous" or
+    "heterogeneous") and ``cfg["graph"]["node_features"]`` ("all" or
+    "none"), each combination selecting a different model-construction
+    branch (plain GNN vs. tabular-encoder-fed GNN, homogeneous vs.
+    relation-aware heterogeneous convolutions).
+
+    Parameters
+    ----------
+    cfg : dict
+        Configuration dict (from a GNN YAML config) with at least
+        "dataset", "model", "training", and "graph" sections; may also
+        carry "exp_id", "seed", and "split_tag" injected by main.py.
+
+    Returns
+    -------
+    dict
+        Either ``{"skipped": True, ...}`` if an idempotent result already
+        exists for ``exp_id``, or the full results dict (metrics, confusion
+        matrix, architecture, training config, and artifact paths).
+
+    Raises
+    ------
+    ValueError
+        If ``model_name == "gin"`` is combined with a featureless graph
+        (GINConv requires node features), or if ``graph_type`` /
+        ``node_feature_policy`` is not one of the supported values.
     """
 
     start_time = time.perf_counter()
@@ -60,8 +103,13 @@ def run_gnn(cfg: Dict) -> Dict:
 
     exp_id = cfg.get("exp_id", "")
     split_tag = cfg.get("split_tag", "default")
-    seed = cfg.get("seed", 42)
+    seed = cfg.get("seed", 42)  # repo-wide reproducibility default (see main.py --seed)
 
+    # GINConv aggregates neighbor node features via a learned sum-based update
+    # (Xu et al., 2019); with no node features there is nothing for it to
+    # aggregate, so the featureless ("none") policy is architecturally
+    # incompatible with GIN. GAT/GraphSAGE can fall back to learned embeddings
+    # instead, so they remain valid without node features.
     if node_feature_policy == "none" and model_name == "gin":
         raise ValueError(
             "GINConv does not support featureless graphs. "

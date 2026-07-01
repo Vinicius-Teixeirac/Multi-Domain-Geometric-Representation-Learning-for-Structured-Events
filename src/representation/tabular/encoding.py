@@ -1,4 +1,13 @@
-# src/representation/tabular/encoding.py
+"""Column encoders for the tabular representation pipeline.
+
+Implements the three encoding methods referenced by ENCODING_SCHEMA:
+SafeLabelEncoder (dense label indices with an explicit UNK class) and
+HashEncoder/HashedOneHotEncoder (feature-hashing for high-cardinality
+categoricals that would otherwise blow up embedding tables). All three
+expose the same fit/transform/save/load interface so TabularPipeline can
+treat them interchangeably.
+"""
+
 from __future__ import annotations
 
 import json
@@ -13,6 +22,8 @@ from scipy import sparse
 from src.utils.experiments_logging import get_logger
 
 logger = get_logger(__name__)
+
+__all__ = ["SafeLabelEncoder", "HashEncoder", "HashedOneHotEncoder"]
 
 
 # ---------------------------------------------------------------------

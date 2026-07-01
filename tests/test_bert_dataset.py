@@ -1,3 +1,7 @@
+"""Tests for BertDataset: length, item format, and constructor validation."""
+
+from typing import Dict
+
 import torch
 import pytest
 
@@ -5,7 +9,7 @@ from src.models.bert.dataset import BertDataset
 
 
 @pytest.fixture
-def bert_encodings():
+def bert_encodings() -> Dict[str, torch.Tensor]:
     """
     Minimal tokenizer-style encoding dict for 16 samples at sequence length 64.
 
@@ -23,7 +27,7 @@ def bert_encodings():
 
 
 @pytest.fixture
-def bert_labels():
+def bert_labels() -> torch.Tensor:
     """Random integer class labels for 16 samples (4 classes)."""
     return torch.randint(0, 4, (16,))
 

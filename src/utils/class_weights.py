@@ -1,6 +1,7 @@
-# src/utils/class_weights.py
+"""Inverse-frequency class weighting for imbalanced classification losses."""
+
 import numpy as np
-import torch 
+import torch
 
 def compute_class_weights(y: np.ndarray, num_classes: int | None = None) -> torch.Tensor:
     """

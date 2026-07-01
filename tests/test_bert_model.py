@@ -1,3 +1,5 @@
+"""Tests for BertForQuadClass: forward pass, forward_batch, and layer-index parsing."""
+
 import torch
 import pytest
 
@@ -7,7 +9,7 @@ NUM_CLASSES = 4
 
 
 @pytest.fixture(scope="module")
-def tiny_bert():
+def tiny_bert() -> BertForQuadClass:
     """
     Module-scoped BertForQuadClass instance backed by a tiny HuggingFace model.
 

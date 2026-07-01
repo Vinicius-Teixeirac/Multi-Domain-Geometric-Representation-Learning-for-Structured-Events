@@ -16,6 +16,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATConv, GCNConv, SAGEConv
 
+__all__ = [
+    "ActorSAGEEncoder",
+    "ActorGATEncoder",
+    "ActorWeightedEncoder",
+    "ActorAttributeEncoder",
+    "build_actor_encoder",
+]
+
 
 # =========================================================================
 # Shared base
@@ -40,7 +48,14 @@ class _ActorEncoderBase(nn.Module):
         ])
 
     def _encode_node_features(self, x: torch.Tensor) -> torch.Tensor:
-        """x: (N, num_attrs) int64 -> (N, num_attrs * feat_embed_dim) float32"""
+        """
+        Embed each categorical attribute column and concatenate the results.
+
+        Args:
+            x: (N, num_attrs) int64 tensor of per-attribute category indices.
+        Returns:
+            (N, num_attrs * feat_embed_dim) float32 tensor.
+        """
         return torch.cat(
             [emb(x[:, i]) for i, emb in enumerate(self.feat_embeddings)], dim=-1
         )
@@ -109,7 +124,26 @@ class ActorSAGEEncoder(_ActorEncoderBase):
         actor2_idx: torch.Tensor,
         graph_edge_attr: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """Run SAGE message passing and return the concatenated actor-pair embedding."""
+        """
+        Run SAGE message passing and return the concatenated actor-pair embedding.
+
+        Parameters
+        ----------
+        graph_x : torch.Tensor of shape (N, num_attrs)
+            Per-node categorical attribute indices for the actor co-occurrence graph.
+        graph_edge_index : torch.Tensor of shape (2, E)
+            Co-occurrence graph connectivity.
+        actor1_idx : torch.Tensor of shape (B,)
+            Node index of the first actor in each event pair.
+        actor2_idx : torch.Tensor of shape (B,)
+            Node index of the second actor in each event pair.
+        graph_edge_attr : ignored (accepted for API uniformity with weighted encoders)
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim)
+            Concatenated actor-pair embedding.
+        """
         h = self.input_proj(self._encode_node_features(graph_x))
         for conv in self.convs:
             h = F.relu(conv(h, graph_edge_index))
@@ -185,7 +219,26 @@ class ActorGATEncoder(_ActorEncoderBase):
         actor2_idx: torch.Tensor,
         graph_edge_attr: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """Run GAT message passing and return the concatenated actor-pair embedding."""
+        """
+        Run GAT message passing and return the concatenated actor-pair embedding.
+
+        Parameters
+        ----------
+        graph_x : torch.Tensor of shape (N, num_attrs)
+            Per-node categorical attribute indices for the actor co-occurrence graph.
+        graph_edge_index : torch.Tensor of shape (2, E)
+            Co-occurrence graph connectivity.
+        actor1_idx : torch.Tensor of shape (B,)
+            Node index of the first actor in each event pair.
+        actor2_idx : torch.Tensor of shape (B,)
+            Node index of the second actor in each event pair.
+        graph_edge_attr : ignored (accepted for API uniformity with weighted encoders)
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim)
+            Concatenated actor-pair embedding.
+        """
         h = self.input_proj(self._encode_node_features(graph_x))
         for conv in self.convs:
             h = F.relu(conv(h, graph_edge_index))
@@ -255,7 +308,28 @@ class ActorWeightedEncoder(_ActorEncoderBase):
         actor2_idx: torch.Tensor,
         graph_edge_attr: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """Run weighted GCN message passing and return the concatenated actor-pair embedding."""
+        """
+        Run weighted GCN message passing and return the concatenated actor-pair embedding.
+
+        Parameters
+        ----------
+        graph_x : torch.Tensor of shape (N, num_attrs)
+            Per-node categorical attribute indices for the actor co-occurrence graph.
+        graph_edge_index : torch.Tensor of shape (2, E)
+            Co-occurrence graph connectivity.
+        actor1_idx : torch.Tensor of shape (B,)
+            Node index of the first actor in each event pair.
+        actor2_idx : torch.Tensor of shape (B,)
+            Node index of the second actor in each event pair.
+        graph_edge_attr : torch.Tensor of shape (E,) or None
+            Normalised co-occurrence edge weights; None falls back to
+            unweighted aggregation.
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim)
+            Concatenated actor-pair embedding.
+        """
         # GCNConv expects edge_weight as 1-D (E,) float tensor; None -> unweighted fallback
         edge_weight = (
             graph_edge_attr
@@ -325,7 +399,25 @@ class ActorAttributeEncoder(_ActorEncoderBase):
         actor2_idx: torch.Tensor,
         graph_edge_attr: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """Embed actors from attributes only (no message passing) and return the pair embedding."""
+        """
+        Embed actors from attributes only (no message passing) and return the pair embedding.
+
+        Parameters
+        ----------
+        graph_x : torch.Tensor of shape (N, num_attrs)
+            Per-node categorical attribute indices.
+        graph_edge_index : ignored (accepted for API uniformity; no message passing occurs)
+        actor1_idx : torch.Tensor of shape (B,)
+            Node index of the first actor in each event pair.
+        actor2_idx : torch.Tensor of shape (B,)
+            Node index of the second actor in each event pair.
+        graph_edge_attr : ignored (accepted for API uniformity)
+
+        Returns
+        -------
+        torch.Tensor of shape (B, out_dim)
+            Concatenated actor-pair embedding.
+        """
         h = self.attr_proj(self._encode_node_features(graph_x))
         a1, a2 = h[actor1_idx], h[actor2_idx]
         return self.pair_proj(torch.cat([a1, a2], dim=-1))
@@ -351,6 +443,11 @@ def build_actor_encoder(cfg: dict, cardinalities: list[int]) -> nn.Module:
     ----------
     cfg : actor sub-config (model.actor in YAML)
     cardinalities : per-attribute cardinalities from actor_graph_builder
+
+    Returns
+    -------
+    nn.Module
+        The instantiated actor encoder (one of the classes in ``_ACTOR_REGISTRY``).
     """
     encoder_type = cfg.get("type", "sage_gnn")
     if encoder_type not in _ACTOR_REGISTRY:

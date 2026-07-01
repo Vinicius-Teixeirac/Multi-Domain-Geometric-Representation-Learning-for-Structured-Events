@@ -1,3 +1,10 @@
+"""Idempotency checks so runners skip experiments that already have results.
+
+Central entry point is should_skip: runners call it before expensive setup
+(data loading, model construction) and short-circuit if a checkpoint or
+results JSON already exists for the given exp_id.
+"""
+
 import json
 from pathlib import Path
 from typing import Optional, Tuple, Dict
@@ -39,7 +46,19 @@ def _find_results_json(dataset: str, exp_id: str) -> Optional[Path]:
 def should_skip(exp_id: str, dataset: str) -> Tuple[bool, Dict[str, Optional[str]]]:
     """Decide whether an experiment should be skipped based on existing artifacts.
 
-    Returns (skip, info) where info contains keys `checkpoint` and/or `results_file` when available.
+    Parameters
+    ----------
+    exp_id : str
+        Experiment identifier to look for among existing checkpoints/results.
+        An empty string always yields (False, ...), i.e. never skip.
+    dataset : str
+        Dataset name, used to scope the checkpoint/results search directories.
+
+    Returns
+    -------
+    tuple of (bool, dict)
+        (skip, info) where info contains keys `checkpoint` and/or
+        `results_file` when available.
     """
     info = {"checkpoint": None, "results_file": None}
     if not exp_id:

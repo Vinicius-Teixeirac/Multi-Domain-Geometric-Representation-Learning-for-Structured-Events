@@ -1,4 +1,12 @@
-# src/representation/tabular/transformers.py
+"""Value transformers used by TabularPipeline for date, geo, and scaling steps.
+
+Each class exposes the same fit/transform interface as the encoders in
+encoding.py: IntegerDateParser/DateToCyclic turn integer dates into cyclic
+sin/cos features, GeoToCartesian turns (lat, lon) into unit-sphere (x, y, z)
+coordinates, and StandardScalerWrapper wraps sklearn's StandardScaler with
+JSON persistence.
+"""
+
 from pathlib import Path
 import json
 
@@ -9,6 +17,9 @@ from sklearn.preprocessing import StandardScaler
 from src.utils.experiments_logging import get_logger
 
 logger = get_logger(__name__)
+
+__all__ = ["IntegerDateParser", "DateToCyclic", "GeoToCartesian", "StandardScalerWrapper"]
+
 
 class IntegerDateParser:
     """Parse an integer date column (e.g. 20150923) into a pandas datetime Series."""
@@ -79,6 +90,13 @@ class GeoToCartesian:
     """Convert (lat, lon) degree columns to Earth-centered Cartesian (x, y, z) coordinates."""
 
     def __init__(self, prefix: str):
+        """
+        Parameters
+        ----------
+        prefix : str
+            Prefix used to name the output columns (e.g. "Actor1Geo" ->
+            "Actor1Geo_geo_x"/"_geo_y"/"_geo_z").
+        """
         self.prefix = prefix
         logger.debug(f"Converting geographic coordinates to Cartesian features with prefix {prefix}")
 

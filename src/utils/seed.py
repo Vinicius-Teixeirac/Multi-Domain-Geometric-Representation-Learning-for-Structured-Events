@@ -1,4 +1,5 @@
-# src/utils/seed.py
+"""Global PRNG seeding for reproducible experiment runs."""
+
 import random
 
 import numpy as np

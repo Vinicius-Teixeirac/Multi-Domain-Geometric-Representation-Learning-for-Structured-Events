@@ -27,6 +27,8 @@ from src.utils.experiments_logging import get_logger
 
 logger = get_logger(__name__)
 
+__all__ = ["Splitter", "SplitStrategy"]
+
 SplitStrategy = Literal["random", "temporal"]
 """random: shuffled stratified split; temporal: chronological split (requires time_column)."""
 

@@ -1,4 +1,6 @@
 # src/models/gnn/heterogeneous.py
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -118,14 +120,55 @@ class HeterogeneousGNN(nn.Module):
             )
         )
 
-    def forward(self, x_dict, edge_index_dict):
-        """Dispatch to HAN or flattened (RGCN/RGAT) forward based on conv_type."""
+    def forward(
+        self,
+        x_dict: dict[str, torch.Tensor | None],
+        edge_index_dict: dict[tuple[str, str, str], torch.Tensor],
+    ) -> dict[str, torch.Tensor]:
+        """
+        Run heterogeneous message passing and return per-node-type logits.
+
+        Dispatches to the HAN-native path or the flatten-to-homogeneous
+        RGCN/RGAT path depending on ``conv_type``.
+
+        Parameters
+        ----------
+        x_dict : dict[str, torch.Tensor of shape (N_t, in_channels) or None]
+            Per-node-type feature tensors; None triggers featureless
+            (learnable embedding) handling for that node type.
+        edge_index_dict : dict[(src, rel, dst), torch.Tensor of shape (2, E_r)]
+            Per-relation edge index tensors, keyed by (src_type, rel_name, dst_type).
+
+        Returns
+        -------
+        dict[str, torch.Tensor of shape (N_t, out_channels)]
+            Per-node-type output logits.
+        """
         if self.conv_type == "han":
             return self._forward_han(x_dict, edge_index_dict)
         return self._forward_flattened(x_dict, edge_index_dict)
 
-    def _forward_flattened(self, x_dict, edge_index_dict):
-        """Run RGCN/RGAT by converting to a homogeneous graph, then unflatten the output."""
+    def _forward_flattened(
+        self,
+        x_dict: dict[str, torch.Tensor | None],
+        edge_index_dict: dict[tuple[str, str, str], torch.Tensor],
+    ) -> dict[str, torch.Tensor]:
+        """
+        Run RGCN/RGAT by converting to a homogeneous graph, then unflatten the output.
+
+        Parameters
+        ----------
+        x_dict : dict[str, torch.Tensor of shape (N_t, in_channels) or None]
+            Per-node-type feature tensors; None triggers featureless
+            (learnable embedding) handling for that node type.
+        edge_index_dict : dict[(src, rel, dst), torch.Tensor of shape (2, E_r)]
+            Per-relation edge index tensors.
+
+        Returns
+        -------
+        dict[str, torch.Tensor of shape (N_t, out_channels)]
+            Per-node-type output logits, split back out of the flattened graph.
+        """
         data = HeteroData()
 
         for node_type, x in x_dict.items():
@@ -154,8 +197,30 @@ class HeterogeneousGNN(nn.Module):
         x = self.convs[-1](x, edge_index, edge_type)
         return self._unflatten(x, data)
 
-    def _forward_han(self, x_dict, edge_index_dict):
-        """Run HAN message-passing on the heterogeneous graph natively."""
+    def _forward_han(
+        self,
+        x_dict: dict[str, torch.Tensor | None],
+        edge_index_dict: dict[tuple[str, str, str], torch.Tensor],
+    ) -> dict[str, torch.Tensor]:
+        """
+        Run HAN message-passing on the heterogeneous graph natively.
+
+        Unlike the RGCN/RGAT path, HANConv consumes ``x_dict``/``edge_index_dict``
+        directly without flattening to a homogeneous graph.
+
+        Parameters
+        ----------
+        x_dict : dict[str, torch.Tensor of shape (N_t, in_channels) or None]
+            Per-node-type feature tensors; None triggers featureless
+            (learnable embedding) handling for that node type.
+        edge_index_dict : dict[(src, rel, dst), torch.Tensor of shape (2, E_r)]
+            Per-relation edge index tensors.
+
+        Returns
+        -------
+        dict[str, torch.Tensor of shape (N_t, out_channels)]
+            Per-node-type output logits.
+        """
         for node_type, x in x_dict.items():
             if x is None:
                 num_nodes = x_dict[node_type].size(0)
@@ -177,15 +242,39 @@ class HeterogeneousGNN(nn.Module):
 
     def _make_conv(
         self,
-        in_dim,
-        out_dim,
+        in_dim: int,
+        out_dim: int,
         *,
-        last=False,
-        heads=4,
-        num_relations=None,
+        last: bool = False,
+        heads: int = 4,
+        num_relations: Optional[int] = None,
         metadata=None,
-    ):
-        """Instantiate a single heterogeneous convolution layer of the configured type."""
+    ) -> nn.Module:
+        """
+        Instantiate a single heterogeneous convolution layer of the configured type.
+
+        Parameters
+        ----------
+        in_dim : int
+            Input feature dimension for this layer.
+        out_dim : int
+            Output feature dimension for this layer.
+        last : bool
+            Whether this is the output layer; RGAT/HAN use a single averaged
+            attention head (concat=False) on the last layer instead of
+            concatenating ``heads`` heads.
+        heads : int
+            Number of attention heads (RGAT/HAN only).
+        num_relations : int or None
+            Total number of edge types (required for RGCN and RGAT).
+        metadata : tuple or None
+            (node_types, edge_types) from HeteroData.metadata() (required for HAN).
+
+        Returns
+        -------
+        nn.Module
+            The instantiated convolution layer (RGCNConv, RGATConv, or HANConv).
+        """
         if self.conv_type == "rgcn":
             return RGCNConv(in_dim, out_dim, num_relations)
 
@@ -205,28 +294,59 @@ class HeterogeneousGNN(nn.Module):
 
         raise ValueError(f"Unknown conv_type '{self.conv_type}'")
 
-    def _hidden_dim(self, hidden_channels, heads):
+    def _hidden_dim(self, hidden_channels: int, heads: int) -> int:
         """Return the effective hidden dimension after a non-final layer (RGAT multiplies by heads)."""
         return hidden_channels * heads if self.conv_type == "rgat" else hidden_channels
 
-    def _activation(self, x):
+    def _activation(self, x: torch.Tensor) -> torch.Tensor:
         """Apply ELU for RGAT, ReLU for all other conv types."""
         return F.elu(x) if self.conv_type == "rgat" else F.relu(x)
 
-    def _unflatten(self, x, data):
-        """Reverse the to_homogeneous flattening: split x back into per-node-type tensors."""
+    def _unflatten(self, x: torch.Tensor, data: HeteroData) -> dict[str, torch.Tensor]:
+        """
+        Reverse the to_homogeneous flattening: split x back into per-node-type tensors.
+
+        Parameters
+        ----------
+        x : torch.Tensor of shape (N_total, out_channels)
+            Flattened output over all node types, in ``to_homogeneous`` order.
+        data : HeteroData
+            The homogeneous-converted graph carrying ``node_type`` (per-node
+            type index) and ``_node_type_names`` (index -> type name).
+
+        Returns
+        -------
+        dict[str, torch.Tensor of shape (N_t, out_channels)]
+            Output tensor sliced back out per original node type.
+        """
         out = {}
         for i, node_type in enumerate(data._node_type_names):
             out[node_type] = x[data.node_type == i]
         return out
 
-    def forward_batch(self, batch, device):
+    def forward_batch(
+        self,
+        batch: HeteroData,
+        device: str,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Move a HeteroData batch to device, run forward, and return (logits, targets).
 
         Handles both featureless mode (zero initialisation) and encoded mode
         (uses self.encoder to build event node features from x_cat/x_num).
         Slices logits and targets to batch_size to exclude sampled neighbourhood nodes.
+
+        Parameters
+        ----------
+        batch : HeteroData
+            A (possibly neighbour-sampled) heterogeneous graph batch.
+        device : str
+            Target device string.
+
+        Returns
+        -------
+        tuple of (logits, targets)
+            Both sliced to the seed-node batch size and moved to device.
         """
         batch = batch.to(device)
 
