@@ -13,9 +13,12 @@ model). All stages are idempotent and reuse cached artifacts unless
 
 from pathlib import Path
 import argparse
+import gc
 import yaml
 import hashlib
 import json
+
+import torch
 
 from src.config import paths  # noqa: F401
 
@@ -92,6 +95,19 @@ def hash_config(cfg: dict) -> str:
     hashable = {k: v for k, v in cfg.items() if k != "_config_path"}
     raw = json.dumps(hashable, sort_keys=True).encode()
     return hashlib.md5(raw).hexdigest()[:8]
+
+
+def _release_gpu_memory() -> None:
+    """Drop Python references from the last run and reclaim CUDA memory.
+
+    Each run_* call builds a model + optimizer for one experiment; without
+    this, memory from one experiment can still be alive (or fragmented)
+    when the next one starts, since main.py runs many experiments back to
+    back in a single process.
+    """
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 def discover_datasets(raw_root: Path) -> list[str]:
@@ -292,6 +308,7 @@ def main():
                 f"Config={base_cfg['_config_path']} | ID={cfg['exp_id']}"
             )
             run_mlp(cfg)
+            _release_gpu_memory()
 
         # --------------------------------------------------
         # Stage 6b: GNN experiments
@@ -305,6 +322,7 @@ def main():
                 f"Config={base_cfg['_config_path']} | ID={cfg['exp_id']}"
             )
             run_gnn(cfg)
+            _release_gpu_memory()
 
         # --------------------------------------------------
         # Stage 6c: BERT experiments
@@ -318,6 +336,7 @@ def main():
                 f"Config={base_cfg['_config_path']} | ID={cfg['exp_id']}"
             )
             run_bert(cfg)
+            _release_gpu_memory()
 
         # --------------------------------------------------
         # Stage 6d: Multi-Domain Geometric experiments
@@ -338,6 +357,7 @@ def main():
                 split_tag=tag,
                 seed=args.seed,
             )
+            _release_gpu_memory()
 
     logger.info("All experiments completed successfully.")
 
