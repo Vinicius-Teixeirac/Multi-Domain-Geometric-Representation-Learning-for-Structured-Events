@@ -1,0 +1,15 @@
+training:
+  monitor_metric: f1_macro
+  batch_size: 32
+  epochs: 5
+  patience: 5
+  lr: 0.001
+  weight_decay: 0.001
+  device: cuda
+model:
+  hidden_dims:
+  - 512
+  - 256
+  - 128
+  - 64
+  - 32

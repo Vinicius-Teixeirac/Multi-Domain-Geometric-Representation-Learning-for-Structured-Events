@@ -1,0 +1,20 @@
+graph:
+  type: heterogeneous
+  num_neighbors:
+  - 5
+  - 5
+  node_features: all
+model:
+  name: rgat
+  hidden_dim: 32
+  num_layers: 2
+  heads: 4
+  dropout: 0.3
+training:
+  device: cuda
+  batch_size: 32
+  epochs: 5
+  lr: 0.005
+  weight_decay: 0.0001
+  patience: 5
+  monitor_metric: f1_macro

@@ -1,0 +1,31 @@
+training:
+  batch_size: 32
+  epochs: 5
+  patience: 5
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+model:
+  actor:
+    type: weighted_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+  geo:
+    type: region_aware
+    out_dim: 32
+    hidden_dim: 64
+    region_embed_dim: 16
+  temporal:
+    type: fourier
+    out_dim: 16
+    hidden_dim: 32
+    num_frequencies: 8
+  fusion:
+    type: gated
+    hidden_dim: 128
+    dropout: 0.2

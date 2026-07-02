@@ -45,3 +45,7 @@ torchvision = { index = "pytorch-cu121" }
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "integration: full-pipeline smoke test (multi-minute, needs GPU, writes real data/results artifacts); run explicitly with `pytest -m integration`",
+]
+addopts = "-m 'not integration'"

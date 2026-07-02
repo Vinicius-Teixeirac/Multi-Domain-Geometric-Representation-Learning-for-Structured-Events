@@ -1,0 +1,31 @@
+training:
+  batch_size: 32
+  epochs: 5
+  patience: 5
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cuda
+  num_workers: 0
+  monitor_metric: f1_macro
+model:
+  actor:
+    type: gat_gnn
+    feat_embed_dim: 16
+    hidden_dim: 128
+    out_dim: 64
+    num_layers: 2
+    dropout: 0.2
+    gat_heads: 4
+  geo:
+    type: hyperspherical
+    out_dim: 32
+    hidden_dim: 64
+  temporal:
+    type: product_manifold
+    out_dim: 16
+    hidden_dim: 32
+  fusion:
+    type: attention
+    hidden_dim: 128
+    dropout: 0.2
+    attention_dim: 64
