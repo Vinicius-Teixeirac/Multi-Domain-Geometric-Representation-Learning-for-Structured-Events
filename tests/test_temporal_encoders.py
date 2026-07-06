@@ -66,17 +66,22 @@ class TestLearnablePeriodEncoder:
     def test_periods_stay_positive_after_a_gradient_step(self, time_features):
         """Log-space parameterisation must keep periods > 0 even after a large gradient update.
 
-        Note: the step size is kept moderate (not huge) on purpose -- driving
-        log_period far enough negative makes exp() underflow to exactly 0.0 in
-        float32, which would make this test's own assertion unreliable rather
-        than exercising the parameterisation.
+        Note: the update uses a fixed magnitude in the gradient's *sign*
+        direction rather than `step * grad`. `proj` (the MLP the periods
+        feed into) is randomly initialised, so its gradient magnitude is
+        unseeded and can span many orders of magnitude across runs; scaling
+        the step by that raw gradient occasionally drove log_period well
+        past float32's underflow boundary (exp() rounding to exactly 0.0),
+        making this test flaky (~1-2% of random inits). A fixed step size
+        exercises the same "large update" scenario deterministically,
+        without the assertion depending on incidental gradient scale.
         """
         enc = LearnablePeriodEncoder(out_dim=OUT_DIM, hidden_dim=HIDDEN_DIM)
         out = enc(time_features)
         out.sum().backward()
         with torch.no_grad():
-            enc.log_period_annual -= 5.0 * enc.log_period_annual.grad
-            enc.log_period_weekly -= 5.0 * enc.log_period_weekly.grad
+            enc.log_period_annual -= 10.0 * enc.log_period_annual.grad.sign()
+            enc.log_period_weekly -= 10.0 * enc.log_period_weekly.grad.sign()
         assert enc.log_period_annual.exp().item() > 0
         assert enc.log_period_weekly.exp().item() > 0
 
