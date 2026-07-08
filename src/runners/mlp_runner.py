@@ -93,6 +93,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
     # ----------------------
     # Training
     # ----------------------
+    assert dm.train_df is not None
     class_weights = compute_class_weights(
         dm.train_df["QuadClass"].to_numpy(), num_classes=NUM_QUAD_CLASSES
     ).to(cfg["training"]["device"])

@@ -52,6 +52,7 @@ class EventMLP(nn.Module):
             prev_dim = dim
 
         self.feature_extractor = nn.Sequential(*layers)
+        assert num_classes is not None, "num_classes must be provided"
         self.classifier = nn.Linear(prev_dim, num_classes)
 
     # --------------------------------------------------------------

@@ -151,4 +151,4 @@ class TestSaveAndRun:
         # 1-based -> 0-based shift
         assert sorted(result["target_col"].unique().tolist()) == [0, 1]
         # explicit missing-value policy applied to str_col
-        assert (result["str_col"] == "__NULL__").any() or result["str_col"].notna().all()
+        assert bool((result["str_col"] == "__NULL__").any()) or bool(result["str_col"].notna().all())

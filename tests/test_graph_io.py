@@ -18,6 +18,9 @@ class TestSaveLoadGraph:
         save_graph(graph, path)
         loaded = load_graph(path)
 
+        assert loaded.x is not None and graph.x is not None
+        assert loaded.edge_index is not None and graph.edge_index is not None
+        assert isinstance(loaded.y, torch.Tensor) and isinstance(graph.y, torch.Tensor)
         assert torch.equal(loaded.x, graph.x)
         assert torch.equal(loaded.edge_index, graph.edge_index)
         assert torch.equal(loaded.y, graph.y)

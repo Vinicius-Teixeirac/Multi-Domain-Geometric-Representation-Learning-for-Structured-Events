@@ -8,6 +8,7 @@ JSON persistence.
 """
 
 from pathlib import Path
+from typing import cast
 import json
 
 import numpy as np
@@ -150,18 +151,23 @@ class StandardScalerWrapper:
 
     def transform(self, X: pd.Series) -> pd.Series:
         """Standardise X using the fitted scaler; return a Series with the same name and index."""
-        values = self.scaler.transform(X.to_numpy().reshape(-1, 1)).ravel()
+        values = cast(
+            np.ndarray, self.scaler.transform(X.to_numpy().reshape(-1, 1))
+        ).ravel()
         return pd.Series(values, name=X.name, index=X.index)
 
     def save(self, path: Path):
         """Serialise scaler parameters (mean, scale, var) to a JSON file at path."""
+        mean = cast(np.ndarray, self.scaler.mean_)
+        scale = cast(np.ndarray, self.scaler.scale_)
+        var = cast(np.ndarray, self.scaler.var_)
         path.write_text(
             json.dumps(
                 {
-                    "mean": self.scaler.mean_.tolist(),
-                    "scale": self.scaler.scale_.tolist(),
-                    "var": self.scaler.var_.tolist(),
-                    "n_features": int(self.scaler.n_features_in_),
+                    "mean": mean.tolist(),
+                    "scale": scale.tolist(),
+                    "var": var.tolist(),
+                    "n_features": int(getattr(self.scaler, "n_features_in_")),
                 }
             )
         )
@@ -174,5 +180,5 @@ class StandardScalerWrapper:
         obj.scaler.mean_ = np.array(data["mean"])
         obj.scaler.scale_ = np.array(data["scale"])
         obj.scaler.var_ = np.array(data["var"])
-        obj.scaler.n_features_in_ = data["n_features"]
+        setattr(obj.scaler, "n_features_in_", data["n_features"])
         return obj

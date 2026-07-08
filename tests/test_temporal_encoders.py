@@ -79,9 +79,11 @@ class TestLearnablePeriodEncoder:
         enc = LearnablePeriodEncoder(out_dim=OUT_DIM, hidden_dim=HIDDEN_DIM)
         out = enc(time_features)
         out.sum().backward()
+        assert enc.log_period_annual.grad is not None
+        assert enc.log_period_weekly.grad is not None
         with torch.no_grad():
-            enc.log_period_annual -= 10.0 * enc.log_period_annual.grad.sign()
-            enc.log_period_weekly -= 10.0 * enc.log_period_weekly.grad.sign()
+            enc.log_period_annual.data -= 10.0 * enc.log_period_annual.grad.sign()
+            enc.log_period_weekly.data -= 10.0 * enc.log_period_weekly.grad.sign()
         assert enc.log_period_annual.exp().item() > 0
         assert enc.log_period_weekly.exp().item() > 0
 

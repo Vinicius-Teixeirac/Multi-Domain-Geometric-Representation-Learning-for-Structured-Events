@@ -4,7 +4,7 @@ Shared by the homogeneous and heterogeneous builders so that node index
 assignment never depends on input row order.
 """
 
-from typing import Dict
+from typing import Dict, cast
 import pandas as pd
 
 __all__ = ["build_index_map", "add_node_index"]
@@ -53,14 +53,15 @@ def add_node_index(
     dict
         Mapping from each unique id_col value to its assigned integer index.
     """
-    if df[id_col].isna().any():
+    id_series = cast(pd.Series, df[id_col])
+    if bool(id_series.isna().any()):
         raise ValueError(f"Missing values found in id column '{id_col}'")
 
     # stable ordering independent of row order
-    ids = pd.unique(df[id_col])
+    ids = pd.unique(id_series)
     ids = sorted(ids)
 
     mapping = build_index_map(ids)
-    df[index_col] = df[id_col].map(mapping)
+    df[index_col] = id_series.map(mapping)
 
     return mapping

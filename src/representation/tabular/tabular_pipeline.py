@@ -9,7 +9,7 @@ persisted to disk for later inference.
 from __future__ import annotations
 
 import warnings
-from typing import Dict, List
+from typing import Dict, List, Union, cast
 
 import pandas as pd
 
@@ -167,7 +167,7 @@ class TabularPipeline:
             kind = COLUMNS_SCHEMA[col]["kind"]
 
             if kind in {"id", "target"}:
-                frames.append(df[[col]])
+                frames.append(cast(pd.DataFrame, df[[col]]))
                 continue
 
             # Geo handled once per pair (Lat triggers, Long skipped)
@@ -186,7 +186,7 @@ class TabularPipeline:
             kind = COLUMNS_SCHEMA[col]["kind"]
 
             if kind in {"id", "target"}:
-                frames.append(df[[col]])
+                frames.append(cast(pd.DataFrame, df[[col]]))
                 continue
 
             if kind == "geo" and col.endswith("_Long"):
@@ -202,7 +202,7 @@ class TabularPipeline:
     def _fit_transform_column(self, df: pd.DataFrame, col: str) -> pd.DataFrame:
         """Fit the appropriate encoder for col (determined by ENCODING_SCHEMA) and return encoded output."""
         cfg = ENCODING_SCHEMA.get(col)
-        series = df[col]
+        series = cast(pd.Series, df[col])
 
         if cfg is None:
             return series.to_frame(col)
@@ -237,13 +237,14 @@ class TabularPipeline:
             lon_col = f"{prefix}_Long"
 
             geo = GeoToCartesian(prefix)
-            out = geo.transform(df[[lat_col, lon_col]])
+            out = geo.transform(cast(pd.DataFrame, df[[lat_col, lon_col]]))
 
             if params.get("scale", False):
                 for c in out.columns:
-                    scaler = StandardScalerWrapper().fit(out[c])
+                    col_series = cast(pd.Series, out[c])
+                    scaler = StandardScalerWrapper().fit(col_series)
                     self._save_artifact(c, scaler)
-                    out[c] = scaler.transform(out[c])
+                    out[c] = scaler.transform(col_series)
 
             return out
 
@@ -252,7 +253,7 @@ class TabularPipeline:
     def _transform_column(self, df: pd.DataFrame, col: str) -> pd.DataFrame:
         """Apply a previously fitted encoder for col to df (val/test splits)."""
         cfg = ENCODING_SCHEMA.get(col)
-        series = df[col]
+        series = cast(pd.Series, df[col])
 
         if cfg is None:
             return series.to_frame(col)
@@ -279,12 +280,12 @@ class TabularPipeline:
             lon_col = f"{prefix}_Long"
 
             geo = GeoToCartesian(prefix)
-            out = geo.transform(df[[lat_col, lon_col]])
+            out = geo.transform(cast(pd.DataFrame, df[[lat_col, lon_col]]))
 
             if params.get("scale", False):
                 for c in out.columns:
                     scaler = self._load_artifact(c)
-                    out[c] = scaler.transform(out[c])
+                    out[c] = scaler.transform(cast(pd.Series, out[c]))
 
             return out
 
@@ -300,10 +301,15 @@ class TabularPipeline:
         self.fitted_objects[name] = obj
         logger.debug(f"Saved artifact '{name}' to {path}")
 
-    def _load_artifact(self, name: str):
+    def _load_artifact(
+        self, name: str
+    ) -> Union[SafeLabelEncoder, HashEncoder, StandardScalerWrapper]:
         """Return the encoder for name from cache, or deserialise it from disk."""
         if name in self.fitted_objects:
-            return self.fitted_objects[name]
+            return cast(
+                Union[SafeLabelEncoder, HashEncoder, StandardScalerWrapper],
+                self.fitted_objects[name],
+            )
 
         path = self.artifacts_dir / f"{name}.json"
         if not path.exists():

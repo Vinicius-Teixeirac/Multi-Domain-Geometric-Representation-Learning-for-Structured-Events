@@ -154,6 +154,7 @@ class TestBuildActorEncoder:
         """gat_heads should only be forwarded for gat_gnn; other types must ignore it if present."""
         cfg = {"type": "gat_gnn", "gat_heads": 2, "out_dim": OUT_DIM}
         enc = build_actor_encoder(cfg, CARDINALITIES)
+        assert isinstance(enc, ActorGATEncoder)
         assert isinstance(enc.convs[0], torch.nn.Module)
 
     def test_unknown_type_raises(self):

@@ -7,7 +7,7 @@ build_event_texts is the entry point used by text_runner.py.
 
 import pandas as pd
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from src.utils.constants import INTERACTION_VERBS
 
@@ -21,16 +21,16 @@ __all__ = [
     "build_event_texts",
 ]
 
-def translate_code(code: object, dictionary: dict) -> Optional[str]:
+def translate_code(code: Any, dictionary: dict) -> Optional[str]:
     """Return the human-readable label for a CAMEO code, or None if missing/null."""
-    if code is None or pd.isna(code) or code == "__NULL__":
+    if code is None or bool(pd.isna(code)) or code == "__NULL__":
         return None
     return dictionary.get(code)
 
 
-def format_day(day: object) -> Optional[str]:
+def format_day(day: Any) -> Optional[str]:
     """Convert a GDELT YYYYMMDD or YYYYMM integer to a readable month-year string."""
-    if day is None or pd.isna(day):
+    if day is None or bool(pd.isna(day)):
         return None
 
     try:
@@ -51,7 +51,7 @@ def normalize_name(name: str) -> str:
     return str(name).title()
 
 
-def verbalize_actor(row: object, prefix: str, dictionaries: dict) -> Optional[str]:
+def verbalize_actor(row: Any, prefix: str, dictionaries: dict) -> Optional[str]:
     """Build a natural-language actor phrase from GDELT actor columns.
 
     Layers name, role, descriptors (group/religion/ethnicity), home country,

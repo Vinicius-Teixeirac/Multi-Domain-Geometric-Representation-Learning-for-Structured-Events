@@ -1,12 +1,12 @@
 # src/models/gnn/heterogeneous.py
-from typing import Optional
+from typing import Optional, cast
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from torch_geometric.nn import RGCNConv, RGATConv, HANConv
-from torch_geometric.data import HeteroData
+from torch_geometric.data import Data, HeteroData
 
 
 class HeterogeneousGNN(nn.Module):
@@ -221,24 +221,44 @@ class HeterogeneousGNN(nn.Module):
         dict[str, torch.Tensor of shape (N_t, out_channels)]
             Per-node-type output logits.
         """
+        resolved: dict[str, torch.Tensor] = {}
         for node_type, x in x_dict.items():
             if x is None:
-                num_nodes = x_dict[node_type].size(0)
+                num_nodes = self._infer_num_nodes(node_type, edge_index_dict)
                 if node_type not in self.node_embeddings:
                     self.node_embeddings[node_type] = nn.Embedding(
                         num_nodes, self.hidden_dim
                     ).to(next(self.parameters()).device)
-                x_dict[node_type] = self.node_embeddings[node_type].weight
+                embedding = cast(nn.Embedding, self.node_embeddings[node_type])
+                resolved[node_type] = embedding.weight
+            else:
+                resolved[node_type] = x
 
         for conv in self.convs[:-1]:
-            x_dict = conv(x_dict, edge_index_dict)
-            x_dict = {k: self._activation(v) for k, v in x_dict.items()}
-            x_dict = {
+            resolved = conv(resolved, edge_index_dict)
+            resolved = {k: self._activation(v) for k, v in resolved.items()}
+            resolved = {
                 k: F.dropout(v, p=self.dropout, training=self.training)
-                for k, v in x_dict.items()
+                for k, v in resolved.items()
             }
 
-        return self.convs[-1](x_dict, edge_index_dict)
+        return self.convs[-1](resolved, edge_index_dict)
+
+    @staticmethod
+    def _infer_num_nodes(
+        node_type: str,
+        edge_index_dict: dict[tuple[str, str, str], torch.Tensor],
+    ) -> int:
+        """Infer node count for a featureless node type from the max index referencing it in edges."""
+        max_idx = -1
+        for (src, _, dst), edge_index in edge_index_dict.items():
+            if edge_index.numel() == 0:
+                continue
+            if src == node_type:
+                max_idx = max(max_idx, int(edge_index[0].max()))
+            if dst == node_type:
+                max_idx = max(max_idx, int(edge_index[1].max()))
+        return max_idx + 1
 
     def _make_conv(
         self,
@@ -276,14 +296,17 @@ class HeterogeneousGNN(nn.Module):
             The instantiated convolution layer (RGCNConv, RGATConv, or HANConv).
         """
         if self.conv_type == "rgcn":
+            assert num_relations is not None
             return RGCNConv(in_dim, out_dim, num_relations)
 
         if self.conv_type == "rgat":
+            assert num_relations is not None
             if last:
                 return RGATConv(in_dim, out_dim, num_relations, heads=1, concat=False, dropout=self.dropout)
             return RGATConv(in_dim, out_dim, num_relations, heads=heads, dropout=self.dropout)
 
         if self.conv_type == "han":
+            assert metadata is not None
             return HANConv(
                 in_dim,
                 out_dim,
@@ -302,7 +325,7 @@ class HeterogeneousGNN(nn.Module):
         """Apply ELU for RGAT, ReLU for all other conv types."""
         return F.elu(x) if self.conv_type == "rgat" else F.relu(x)
 
-    def _unflatten(self, x: torch.Tensor, data: HeteroData) -> dict[str, torch.Tensor]:
+    def _unflatten(self, x: torch.Tensor, data: Data) -> dict[str, torch.Tensor]:
         """
         Reverse the to_homogeneous flattening: split x back into per-node-type tensors.
 
@@ -310,7 +333,7 @@ class HeterogeneousGNN(nn.Module):
         ----------
         x : torch.Tensor of shape (N_total, out_channels)
             Flattened output over all node types, in ``to_homogeneous`` order.
-        data : HeteroData
+        data : Data
             The homogeneous-converted graph carrying ``node_type`` (per-node
             type index) and ``_node_type_names`` (index -> type name).
 

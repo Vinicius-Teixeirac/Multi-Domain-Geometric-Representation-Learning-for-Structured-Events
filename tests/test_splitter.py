@@ -140,7 +140,7 @@ class TestSplitterRun:
         _write_clean_df(processed_dir, "sample", n=100)
         splitter = Splitter(sample_name="sample")
         with pytest.raises(ValueError, match="Unknown split strategy"):
-            splitter.run(filename="processed_sample", strategy="bogus", random_state=42)
+            splitter.run(filename="processed_sample", strategy="bogus", random_state=42)  # type: ignore[arg-type]
 
     def test_output_dir_created_on_construction(self, patched_dirs):
         """Splitter.__init__ must create the output directory even before run() is called."""

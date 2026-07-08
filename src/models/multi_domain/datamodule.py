@@ -157,6 +157,7 @@ class MultiDomainDataModule:
 
     def train_dataloader(self) -> DataLoader:
         """Return a shuffled DataLoader over the training split."""
+        assert self.train_dataset is not None, "call setup() before train_dataloader()"
         return self._make_loader(self.train_dataset, shuffle=True)
 
     def val_dataloader(self) -> Optional[DataLoader]:
@@ -167,4 +168,5 @@ class MultiDomainDataModule:
 
     def test_dataloader(self) -> DataLoader:
         """Return an ordered DataLoader over the test split."""
+        assert self.test_dataset is not None, "call setup() before test_dataloader()"
         return self._make_loader(self.test_dataset, shuffle=False)

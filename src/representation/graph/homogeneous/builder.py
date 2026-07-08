@@ -7,7 +7,7 @@ they are loaded separately by homogeneous/loaders.py.
 """
 
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, List, Optional
 import json
 
 import torch
@@ -94,7 +94,7 @@ class HomogeneousEventGraphBuilder(GraphBuilder):
         self.default_max_neighbors = default_max_neighbors
         self.seed = seed
 
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> Data:
         """
         Load entity parquet, construct the homogeneous event graph, and return it.
 

@@ -4,7 +4,7 @@ Two event nodes are connected if they share at least one entity key value
 (e.g. the same Actor1ID), with per-key neighbour sampling to bound degree.
 """
 
-from typing import Dict, Set, Optional, Tuple, Iterable
+from typing import Dict, Set, Optional, Tuple, Iterable, cast
 
 import numpy as np
 import pandas as pd
@@ -61,7 +61,7 @@ def build_binary_edges_from_shared_keys(
     for key in keys:
         limit = max_neighbors_per_key.get(key, default_max_neighbors) if max_neighbors_per_key else default_max_neighbors
         grouped = (
-            df[[key, node_idx_col]]
+            cast(pd.DataFrame, df[[key, node_idx_col]])
             .dropna()
             .groupby(key, sort=False)
         )

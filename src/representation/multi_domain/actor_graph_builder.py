@@ -23,6 +23,8 @@ replacing the full-graph GNN with neighbor sampling (PyG NeighborLoader).
 
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 import pandas as pd
 import torch
@@ -67,6 +69,7 @@ def _safe_transform(values: np.ndarray, enc: LabelEncoder) -> np.ndarray:
     Label-encode an array of values with +1 offset (index 0 = unknown).
     Values not seen during fitting are mapped to 0.
     """
+    assert enc.classes_ is not None, "encoder must be fitted before transform"
     classes_set = set(enc.classes_)
     out = np.zeros(len(values), dtype=np.int64)
     mask = np.array([v in classes_set for v in values], dtype=bool)
@@ -135,6 +138,7 @@ def build_actor_graph(
         )
         le = LabelEncoder()
         le.fit(combined)
+        assert le.classes_ is not None
         encoders.append(le)
         cardinalities.append(len(le.classes_) + 1)  # +1 for unknown at embedding index 0
 
@@ -159,13 +163,12 @@ def build_actor_graph(
         pd.Series(actor_attr_df["actor_id"].values)
         .map(actor_to_idx)
         .fillna(0)
-        .astype(np.int64)
-        .values
+        .to_numpy(dtype=np.int64)
     )
 
     node_x = np.zeros((N, _NUM_ATTRS), dtype=np.int64)
     for feat_i, (base, enc) in enumerate(zip(_ATTR_BASES, encoders)):
-        encoded = _safe_transform(actor_attr_df[base].values, enc)
+        encoded = _safe_transform(actor_attr_df[base].to_numpy(), enc)
         node_x[node_indices, feat_i] = encoded
 
     # ------------------------------------------------------------------
@@ -173,10 +176,10 @@ def build_actor_graph(
     # ------------------------------------------------------------------
     # Reuse actor ID arrays already computed in step 1 - no need to recompute.
     a1_idx_arr = (
-        pd.Series(a1_ids_full).map(actor_to_idx).fillna(0).astype(np.int64).values
+        pd.Series(a1_ids_full).map(actor_to_idx).fillna(0).to_numpy(dtype=np.int64)
     )
     a2_idx_arr = (
-        pd.Series(a2_ids_full).map(actor_to_idx).fillna(0).astype(np.int64).values
+        pd.Series(a2_ids_full).map(actor_to_idx).fillna(0).to_numpy(dtype=np.int64)
     )
 
     mask = a1_idx_arr != a2_idx_arr  # remove self-loops
@@ -186,12 +189,13 @@ def build_actor_graph(
 
     if src_all.size > 0:
         # Count co-occurrence frequency per directed pair, then normalise
-        counts_df = (
+        counts_series = cast(
+            pd.Series,
             pd.DataFrame({"src": src_all, "dst": dst_all})
             .groupby(["src", "dst"], sort=False)
-            .size()
-            .reset_index(name="count")
+            .size(),
         )
+        counts_df = counts_series.rename("count").reset_index()
         src_dedup = counts_df["src"].to_numpy(dtype=np.int64)
         dst_dedup = counts_df["dst"].to_numpy(dtype=np.int64)
         raw_counts = counts_df["count"].to_numpy(dtype=np.float32)

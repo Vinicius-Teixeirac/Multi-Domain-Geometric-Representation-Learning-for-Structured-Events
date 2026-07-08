@@ -92,6 +92,7 @@ def run_bert(cfg: Dict[str, Any]) -> Dict[str, Any]:
     # ==============================================================
     # TRAINING
     # ==============================================================
+    assert dm.train_dataset is not None
     class_weights = compute_class_weights(
         dm.train_dataset.labels.cpu().numpy(), num_classes=NUM_QUAD_CLASSES
     ).to(device)

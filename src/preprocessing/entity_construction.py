@@ -6,7 +6,7 @@ builders can later join events sharing the same actor/location entity.
 """
 
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, cast
 
 import pandas as pd
 
@@ -160,7 +160,10 @@ def build_event_entities(
 
         df["Event_GeoID"] = df.apply(build_geo_id, axis=1)
 
-        df = df[["GlobalEventID","Actor1ID","Actor2ID","Event_GeoID","Day","QuadClass"]].copy()
+        df = cast(
+            pd.DataFrame,
+            df[["GlobalEventID","Actor1ID","Actor2ID","Event_GeoID","Day","QuadClass"]],
+        ).copy()
         # --------------------------------------------------
         # Save entities
         # --------------------------------------------------
@@ -171,9 +174,9 @@ def build_event_entities(
         # Metadata (entity cardinalities)
         # --------------------------------------------------
         metadata: Dict[str, int] = {
-            "num_actor1_entities": df["Actor1ID"].nunique(),
-            "num_actor2_entities": df["Actor2ID"].nunique(),
-            "num_geo_entities": df["Event_GeoID"].nunique(),
+            "num_actor1_entities": cast(pd.Series, df["Actor1ID"]).nunique(),
+            "num_actor2_entities": cast(pd.Series, df["Actor2ID"]).nunique(),
+            "num_geo_entities": cast(pd.Series, df["Event_GeoID"]).nunique(),
             "num_events": len(df),
         }
 

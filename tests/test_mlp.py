@@ -1,5 +1,7 @@
 """Tests for EventMLP: construction, forward pass, and forward_batch unpacking."""
 
+from typing import cast
+
 import torch
 import pytest
 
@@ -28,7 +30,7 @@ class TestEventMLP:
     def test_construction(self, mlp):
         """Model is a ``torch.nn.Module`` with the correct output width."""
         assert isinstance(mlp, torch.nn.Module)
-        assert mlp.classifier.out_features == NUM_CLASSES
+        assert cast(torch.nn.Linear, mlp.classifier).out_features == NUM_CLASSES
 
     def test_forward_shape(self, mlp, sample_x_cat, sample_x_num):
         """Forward pass returns float32 logits of shape ``(BATCH_SIZE, NUM_CLASSES)``."""

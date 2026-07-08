@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import hashlib
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import numpy as np
@@ -189,7 +189,7 @@ class HashEncoder:
         )
         values.name = series.name
         logger.debug(f"Hash-encoding column '{series.name}' into {self.num_buckets} buckets")
-        return values
+        return cast(pd.Series, values)
 
     def save(self, path: Path):
         """Serialise num_buckets and dtype to a JSON file at path."""
@@ -233,7 +233,7 @@ class HashedOneHotEncoder:
         self,
         num_buckets: int,
         signed: bool = True,
-        dtype: np.dtype = np.float32,
+        dtype: np.dtype = np.dtype(np.float32),
     ):
         """
         Parameters

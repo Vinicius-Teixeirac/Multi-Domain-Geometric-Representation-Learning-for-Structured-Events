@@ -7,7 +7,7 @@ actor1/actor2/geo/day component nodes without a per-row Python loop.
 import torch
 import pandas as pd
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Tuple, cast
 
 
 def build_event_component_edges(
@@ -45,13 +45,13 @@ def build_event_component_edges(
     # --------------------------------------------------
     # Select + clean
     # --------------------------------------------------
-    sub = df[[event_idx_col, component_col]].dropna()
+    sub = cast(pd.DataFrame, df[[event_idx_col, component_col]]).dropna()
 
     # --------------------------------------------------
     # Vectorized index resolution
     # --------------------------------------------------
-    src_e = sub[event_idx_col].to_numpy(dtype=np.int64)
-    dst_c = sub[component_col].map(component_index).to_numpy(dtype=np.int64)
+    src_e = cast(pd.Series, sub[event_idx_col]).to_numpy(dtype=np.int64)
+    dst_c = cast(pd.Series, sub[component_col]).map(component_index).to_numpy(dtype=np.int64)
 
     # --------------------------------------------------
     # FAST tensor construction (no warning, no copies)

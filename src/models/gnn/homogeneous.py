@@ -154,14 +154,19 @@ class HomogeneousGNN(nn.Module):
         """
         batch = batch.to(device)
 
-        if hasattr(batch, "x"):
+        if hasattr(batch, "x") and batch.x is not None:
             x = batch.x
+            assert isinstance(x, torch.Tensor)
         else:
             num_nodes = batch.num_nodes
-            x = batch.y.new_zeros((num_nodes, self.hidden_dim)).float()
+            y = batch.y
+            assert num_nodes is not None and isinstance(y, torch.Tensor)
+            x = y.new_zeros((num_nodes, self.hidden_dim)).float()
 
+        assert batch.edge_index is not None
         logits = self.forward(x, batch.edge_index)
         targets = batch.y
+        assert isinstance(targets, torch.Tensor)
 
         if hasattr(batch, "batch_size"):
             logits = logits[: batch.batch_size]

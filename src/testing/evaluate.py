@@ -11,7 +11,7 @@ and persists both to ARTIFACTS_DATA.
 
 import json
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple, cast
 
 import numpy as np
 import torch
@@ -50,7 +50,7 @@ def evaluate_model(
 
     with torch.no_grad():
         for batch in tqdm(test_loader, desc="Evaluating"):
-            logits, targets = model.forward_batch(batch, device)
+            logits, targets = cast(Any, model).forward_batch(batch, device)
             all_logits.append(logits)
             all_targets.append(targets)
 

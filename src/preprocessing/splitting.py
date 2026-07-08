@@ -14,7 +14,7 @@ Entities (actors, locations, days) may appear across splits.
 """
 
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Optional, Literal, cast
 import warnings
 import json
 
@@ -187,6 +187,8 @@ class Splitter:
             shuffle=(strategy == "random"),
             random_state=random_state,
         )
+        df_train_valid = cast(pd.DataFrame, df_train_valid)
+        df_test = cast(pd.DataFrame, df_test)
 
         logger.info(
             f"Split sizes - train+val: {len(df_train_valid)}, test: {len(df_test)}"
@@ -249,6 +251,8 @@ class Splitter:
             shuffle=(strategy == "random"),
             random_state=random_state,
         )
+        df_train = cast(pd.DataFrame, df_train)
+        df_valid = cast(pd.DataFrame, df_valid)
 
         logger.info(
             f"Final split sizes - train: {len(df_train)}, "

@@ -7,7 +7,7 @@ missing-value policies declared in COLUMNS_SCHEMA.
 """
 
 from pathlib import Path
-from typing import Iterable, Optional, List
+from typing import Iterable, Optional, List, cast
 import warnings
 
 import pandas as pd
@@ -70,18 +70,19 @@ class MissingValueHandler:
                 continue
 
             policy = meta.get("missing")
+            series = cast(pd.Series, df[col])
 
             if policy == "explicit":
-                df[col] = df[col].fillna(NULL_TOKEN).astype("string")
+                df[col] = series.fillna(NULL_TOKEN).astype("string")
                 logger.debug(f"filling missing values in {col} with explicit {NULL_TOKEN}")
 
             elif policy == "indicator":
                 indicator_col = f"{col}__is_missing"
-                df[indicator_col] = df[col].isna().astype("int8")
+                df[indicator_col] = series.isna().astype("int8")
                 logger.debug(f"filling missing values in {col} with indicator {indicator_col}")
 
             elif policy == "error":
-                if df[col].isna().any():
+                if bool(series.isna().any()):
                     raise ValueError(
                         f"Missing values found in non-nullable column '{col}'"
                     )
@@ -182,7 +183,7 @@ class DataCleaner:
                 f"Input data is missing required columns: {sorted(missing)}"
             )
         logger.debug(f"Selecting {len(self.selected_columns)} columns")
-        return df[self.selected_columns].copy()
+        return cast(pd.DataFrame, df[self.selected_columns]).copy()
 
     def cast_types(self, df: pd.DataFrame) -> pd.DataFrame:
         """Cast each column to its canonical dtype (Int64, float32, or string)."""

@@ -113,6 +113,7 @@ class EventDataModule:
         - numeric columns = everything else
         """
 
+        assert self.train_df is not None, "call setup() before _infer_feature_groups()"
         for col in self.train_df.columns:
             if col == self.target_col:
                 continue
@@ -190,6 +191,7 @@ class EventDataModule:
 
     def train_dataloader(self) -> DataLoader:
         """Return a shuffled DataLoader for the training split."""
+        assert self.train_df is not None, "call setup() before train_dataloader()"
         return self._make_loader(self.train_df, shuffle=True)
 
     def val_dataloader(self) -> Optional[DataLoader]:
@@ -200,4 +202,5 @@ class EventDataModule:
 
     def test_dataloader(self) -> DataLoader:
         """Return a DataLoader for the test split."""
+        assert self.test_df is not None, "call setup() before test_dataloader()"
         return self._make_loader(self.test_df, shuffle=False)

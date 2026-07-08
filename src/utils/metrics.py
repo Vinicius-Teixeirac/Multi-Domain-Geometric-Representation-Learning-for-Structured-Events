@@ -1,6 +1,6 @@
 """Classification metric computation shared by all model runners' evaluation step."""
 
-from typing import Dict
+from typing import Dict, cast
 
 import numpy as np
 import torch
@@ -47,8 +47,8 @@ def compute_classification_metrics(
         # for readers unfamiliar with that equivalence, not as a metric gap.
         # "f1_micro": f1_score(y, preds, average="micro"),
         "f1_weighted": f1_score(y, preds, average="weighted"),
-        "precision_macro": precision_score(y, preds, average="macro", zero_division=0),
-        "recall_macro": recall_score(y, preds, average="macro", zero_division=0),
+        "precision_macro": precision_score(y, preds, average="macro", zero_division=cast(str, 0)),
+        "recall_macro": recall_score(y, preds, average="macro", zero_division=cast(str, 0)),
     }
 
 @torch.no_grad()

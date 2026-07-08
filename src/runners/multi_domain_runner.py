@@ -94,6 +94,10 @@ def run_multi_domain(
         num_workers=train_cfg.get("num_workers", 0),
     )
     dm.setup()
+    assert dm.actor_graph is not None
+    assert dm.actor_graph.edge_index is not None
+    assert dm.train_dataset is not None and dm.test_dataset is not None
+    assert dm.num_classes is not None
     logger.info(
         "Actor graph: %d nodes, %d edges  (built in %.1fs)",
         dm.actor_graph.num_nodes,
@@ -126,6 +130,7 @@ def run_multi_domain(
 
     # Load actor graph into model as registered buffers.
     # train_model() will call model.to(device) and move the buffers too.
+    assert dm.actor_graph.x is not None and dm.actor_graph.edge_index is not None
     model.set_actor_graph(
         dm.actor_graph.x,
         dm.actor_graph.edge_index,
@@ -199,7 +204,7 @@ def run_multi_domain(
             "temporal": model_cfg["temporal"],
             "fusion":   model_cfg["fusion"],
             "actor_nodes": dm.actor_graph.num_nodes,
-            "actor_edges": int(dm.actor_graph.edge_index.shape[1]),
+            "actor_edges": int(dm.actor_graph.edge_index.shape[1]) if dm.actor_graph.edge_index is not None else 0,
         },
         "artifacts": {
             "best_model_path": str(checkpoint_path),

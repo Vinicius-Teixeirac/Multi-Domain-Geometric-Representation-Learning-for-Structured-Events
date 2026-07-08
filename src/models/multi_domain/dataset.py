@@ -21,6 +21,8 @@ features however they need.
 
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 import pandas as pd
 import torch
@@ -134,7 +136,7 @@ class MultiDomainEventDataset(Dataset):
 
         # --- Temporal: raw 3-dim features ---
         time_feat, self.time_mean, self.time_std = compute_temporal_features(
-            df[_DAY_COL], linear_mean=time_mean, linear_std=time_std
+            cast(pd.Series, df[_DAY_COL]), linear_mean=time_mean, linear_std=time_std
         )
         self.time_features = torch.tensor(time_feat, dtype=torch.float32)
 

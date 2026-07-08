@@ -56,7 +56,7 @@ class TestLoadParquet:
 
     def test_non_default_index_warns(self, tmp_path):
         """A non-RangeIndex DataFrame should surface a UserWarning (silent-bug guard)."""
-        df = pd.DataFrame({"a": [1, 2]}, index=[10, 20])
+        df = pd.DataFrame({"a": [1, 2]}, index=pd.Index([10, 20]))
         df.to_parquet(tmp_path / "file.parquet", index=True)
         with pytest.warns(UserWarning):
             load_parquet("file", tmp_path)

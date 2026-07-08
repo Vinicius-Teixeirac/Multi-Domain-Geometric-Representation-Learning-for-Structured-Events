@@ -10,7 +10,7 @@ best model to ARTIFACTS_DATA.
 """
 
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Any, Dict, Optional, Iterable, cast
 
 
 import torch
@@ -107,7 +107,7 @@ def train_model(
         num_samples = 0
 
         for batch in tqdm(train_loader, desc=f"Epoch {epoch} [train]"):
-            logits, targets = model.forward_batch(batch, device)
+            logits, targets = cast(Any, model).forward_batch(batch, device)
             loss = criterion(logits, targets)
             optimizer.zero_grad()
             loss.backward()
@@ -123,13 +123,14 @@ def train_model(
         # Validation
         # ---------------------
         val_metric = None
+        metrics: Dict[str, float] = {}
         if val_loader is not None:
             model.eval()
             all_logits, all_targets = [], []
 
             with torch.no_grad():
                 for batch in tqdm(val_loader, desc=f"Epoch {epoch} [val]"):
-                    logits, targets = model.forward_batch(batch, device)
+                    logits, targets = cast(Any, model).forward_batch(batch, device)
                     all_logits.append(logits)
                     all_targets.append(targets)
 

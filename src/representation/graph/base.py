@@ -7,7 +7,9 @@ topology is in use.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Union
+
+from torch_geometric.data import Data, HeteroData
 
 
 class GraphBuilder(ABC):
@@ -18,6 +20,6 @@ class GraphBuilder(ABC):
     """
 
     @abstractmethod
-    def build(self) -> Dict:
+    def build(self) -> Union[Data, HeteroData]:
         """Construct and return the graph for the configured split."""
         pass

@@ -69,7 +69,7 @@ def should_skip(exp_id: str, dataset: str) -> Tuple[bool, Dict[str, Optional[str
         (skip, info) where info contains keys `checkpoint` and/or
         `results_file` when available.
     """
-    info = {"checkpoint": None, "results_file": None}
+    info: Dict[str, Optional[str]] = {"checkpoint": None, "results_file": None}
     if not exp_id:
         return False, info
 

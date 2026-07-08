@@ -67,14 +67,14 @@ class TestVerbalizeActor:
         """An actor with just a name and no other attributes still produces a phrase with the name."""
         row = {"Actor1Name": "john smith"}
         phrase = verbalize_actor(row, "Actor1", {})
-        assert "John Smith" in phrase
+        assert phrase is not None and "John Smith" in phrase
 
     def test_role_is_appended_in_parentheses(self):
         """A resolved Type1Code role must be appended in parentheses after the name."""
         row = {"Actor1Name": "john smith", "Actor1Type1Code": "GOV"}
         dictionaries = {"Actor1Type1Code": {"GOV": "Government"}}
         phrase = verbalize_actor(row, "Actor1", dictionaries)
-        assert "(Government)" in phrase
+        assert phrase is not None and "(Government)" in phrase
 
 
 class TestVerbalizeEventLocation:

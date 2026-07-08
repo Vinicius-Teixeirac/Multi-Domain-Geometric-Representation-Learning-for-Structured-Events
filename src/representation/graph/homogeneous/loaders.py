@@ -5,7 +5,7 @@ train/valid/test loaders (full-batch or NeighborLoader-sampled) for
 homogeneous GNNs, persisting each split's built graph to GRAPHS_DATA.
 """
 
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, cast
 import json
 
 import torch
@@ -131,9 +131,9 @@ def _build_node_features(
 
     node_map = {int(k): int(v) for k, v in node_map.items()}
 
-    df["node_idx"] = df["GlobalEventID"].map(node_map)
+    df["node_idx"] = cast(pd.Series, df["GlobalEventID"]).map(node_map)
 
-    if df["node_idx"].isna().any():
+    if bool(cast(pd.Series, df["node_idx"]).isna().any()):
         raise ValueError(
             "Some feature rows reference nodes not present in the graph"
         )

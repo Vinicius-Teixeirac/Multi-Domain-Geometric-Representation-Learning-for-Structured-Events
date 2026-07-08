@@ -56,9 +56,9 @@ class BertEventDataModule:
             max_length=max_length,
         )
 
-        self.train_dataset = None
-        self.val_dataset = None
-        self.test_dataset = None
+        self.train_dataset: Optional[BertDataset] = None
+        self.val_dataset: Optional[BertDataset] = None
+        self.test_dataset: Optional[BertDataset] = None
 
     # ------------------------------------------------------------------
     # Setup
@@ -69,6 +69,7 @@ class BertEventDataModule:
         train_df = self._load_split("train", self.split_tag)
         val_df   = self._load_split("valid", self.split_tag)
         test_df  = self._load_split("test", self.split_tag)
+        assert train_df is not None and test_df is not None
 
         self.train_dataset = self._build_dataset(train_df)
         self.val_dataset   = self._build_dataset(val_df) if val_df is not None else None
@@ -119,6 +120,7 @@ class BertEventDataModule:
 
     def train_dataloader(self) -> DataLoader:
         """Return a shuffled DataLoader for the training split."""
+        assert self.train_dataset is not None, "call setup() before train_dataloader()"
         return self._loader(self.train_dataset, shuffle=True)
 
     def val_dataloader(self) -> Optional[DataLoader]:
@@ -129,4 +131,5 @@ class BertEventDataModule:
 
     def test_dataloader(self) -> DataLoader:
         """Return a DataLoader for the test split."""
+        assert self.test_dataset is not None, "call setup() before test_dataloader()"
         return self._loader(self.test_dataset, shuffle=False)

@@ -58,12 +58,12 @@ class TestBertDataset:
     def test_bad_encodings_type(self, bert_labels):
         """Passing a non-dict as encodings raises TypeError."""
         with pytest.raises(TypeError, match="encodings must be a dict"):
-            BertDataset("not_a_dict", bert_labels)
+            BertDataset("not_a_dict", bert_labels)  # type: ignore[arg-type]
 
     def test_bad_labels_type(self, bert_encodings):
         """Passing a plain list as labels raises TypeError."""
         with pytest.raises(TypeError, match="labels must be a torch.Tensor"):
-            BertDataset(bert_encodings, [1, 2, 3])
+            BertDataset(bert_encodings, [1, 2, 3])  # type: ignore[arg-type]
 
     def test_shape_mismatch(self, bert_encodings):
         """Mismatched encoding rows vs. label length raises ValueError."""
