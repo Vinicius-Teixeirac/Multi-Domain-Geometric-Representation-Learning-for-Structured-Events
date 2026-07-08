@@ -5,7 +5,7 @@ Not part of the default `pytest` run: it needs a GPU, takes several
 minutes, and writes real artifacts under data/ and results/. Run it
 explicitly with `pytest -m integration`.
 
-Runs all 13 smoke configs through a single `main.py` invocation on purpose:
+Runs all 18 smoke configs through a single `main.py` invocation on purpose:
 this exact shape (many models trained back to back in one process)
 previously surfaced a CUDA OOM from GPU memory not being released between
 sequential runs, and an idempotency bug where a crashed run's stray
@@ -30,8 +30,8 @@ SMOKE_CONFIG_DIR = REPO_ROOT / "src" / "config" / "model_setup" / "smoke"
 
 EXPECTED_RESULT_COUNTS = {
     "EventMLP": 1,
-    "HomogeneousGNN": 3,       # graphSAGE, gat, gin
-    "HeterogeneousGNN": 3,     # han, rgat, rgcn
+    "HomogeneousGNN": 5,       # graphSAGE, gat, gin, graphSAGE_no_features, gat_no_features
+    "HeterogeneousGNN": 6,     # han, rgat, rgcn, han_no_features, rgat_no_features, rgcn_no_features
     "BertForQuadClass": 1,
     "MultiDomainGeometricModel": 5,
 }
@@ -63,6 +63,11 @@ def test_all_models_train_and_evaluate_in_one_process():
         str(SMOKE_CONFIG_DIR / "han.yaml"),
         str(SMOKE_CONFIG_DIR / "rgat.yaml"),
         str(SMOKE_CONFIG_DIR / "rgcn.yaml"),
+        str(SMOKE_CONFIG_DIR / "graphSAGE_no_features.yaml"),
+        str(SMOKE_CONFIG_DIR / "gat_no_features.yaml"),
+        str(SMOKE_CONFIG_DIR / "han_no_features.yaml"),
+        str(SMOKE_CONFIG_DIR / "rgat_no_features.yaml"),
+        str(SMOKE_CONFIG_DIR / "rgcn_no_features.yaml"),
         "--bert-configs", str(SMOKE_CONFIG_DIR / "bert.yaml"),
         "--multi-domain-configs",
         str(SMOKE_CONFIG_DIR / "multi_domain.yaml"),
