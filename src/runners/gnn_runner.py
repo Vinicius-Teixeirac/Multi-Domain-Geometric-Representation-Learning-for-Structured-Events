@@ -165,9 +165,14 @@ def run_gnn(cfg: Dict[str, Any]) -> Dict[str, Any]:
             }
 
         elif node_feature_policy == "none":
+            # _build_node_features (homogeneous/loaders.py) returns a
+            # constant torch.ones((num_nodes, 1)) dummy feature for the
+            # "none" policy, so in_channels must be 1, not 0 - unlike
+            # HeterogeneousGNN, HomogeneousGNN has no featureless learned-
+            # embedding fallback and expects real input width.
             model = HomogeneousGNN(
                 conv_type=cfg["model"]["name"],
-                in_channels=0,
+                in_channels=1,
                 hidden_channels=cfg["model"]["hidden_dim"],
                 out_channels=NUM_QUAD_CLASSES,
                 num_layers=cfg["model"]["num_layers"],
