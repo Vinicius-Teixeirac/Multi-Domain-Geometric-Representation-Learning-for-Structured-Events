@@ -168,7 +168,10 @@ def save_runner_results(results: dict, results_dir: Path, prefix: str) -> Path:
         Path to the written `{prefix}_results_{timestamp}.json` file.
     """
     results_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    # Millisecond resolution: a bare second-resolution timestamp collides
+    # when two fast experiments (e.g. featureless smoke configs) finish in
+    # the same second, silently overwriting one result file with another.
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]
     path = results_dir / f"{prefix}_results_{timestamp}.json"
     with open(path, "w") as f:
         json.dump(results, f, indent=2)
