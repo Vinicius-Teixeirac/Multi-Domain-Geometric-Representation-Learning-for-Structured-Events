@@ -27,6 +27,46 @@ from src.config.paths import ARTIFACTS_DATA
 logger = get_logger(__name__)
 
 
+def _build_param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
+    """
+    Split model parameters into weight-decay and no-decay optimizer groups.
+
+    Any submodule may opt its parameters out of weight decay by implementing
+    ``no_weight_decay_params() -> list[nn.Parameter]`` (e.g. TabularInputEncoder's
+    embedding tables, HeterogeneousGNN's featureless node embeddings). This
+    keeps train_model architecture-agnostic: models without sparsely-updated
+    embedding tables (MLP heads, BERT, homogeneous GNN convs) are unaffected.
+
+    Parameters
+    ----------
+    model : nn.Module
+        Model whose parameters will be optimized.
+    weight_decay : float
+        Weight decay applied to all parameters not opted out.
+
+    Returns
+    -------
+    list[dict]
+        Param-group list for the Adam constructor.
+    """
+    no_decay_ids: set[int] = set()
+    for module in model.modules():
+        get_no_decay = getattr(module, "no_weight_decay_params", None)
+        if callable(get_no_decay):
+            no_decay_ids.update(id(p) for p in get_no_decay())
+
+    if not no_decay_ids:
+        return [{"params": list(model.parameters()), "weight_decay": weight_decay}]
+
+    decay_params = [p for p in model.parameters() if id(p) not in no_decay_ids]
+    no_decay_params = [p for p in model.parameters() if id(p) in no_decay_ids]
+
+    return [
+        {"params": decay_params, "weight_decay": weight_decay},
+        {"params": no_decay_params, "weight_decay": 0.0},
+    ]
+
+
 def train_model(
     model: nn.Module,
     train_loader: DataLoader,
@@ -57,7 +97,9 @@ def train_model(
             the final-epoch weights instead.
         num_epochs: Maximum number of training epochs.
         lr: Initial learning rate for the Adam optimizer.
-        weight_decay: L2 weight decay passed to the Adam optimizer.
+        weight_decay: L2 weight decay passed to the Adam optimizer. Excluded
+            for any submodule's params returned by its
+            ``no_weight_decay_params()`` (see ``_build_param_groups``).
         class_weights: Optional per-class weights for CrossEntropyLoss,
             e.g. to counter class imbalance.
         dataset_name: Dataset name, used to build the checkpoint output
@@ -81,7 +123,7 @@ def train_model(
     model.to(device)
 
     criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
-    optimizer = Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = Adam(_build_param_groups(model, weight_decay), lr=lr)
 
     # LR patience is deliberately tighter than early-stop patience (1/5th of
     # it) so the learning rate drops and gives training a chance to recover

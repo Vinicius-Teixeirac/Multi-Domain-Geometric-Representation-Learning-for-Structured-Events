@@ -120,6 +120,19 @@ class HeterogeneousGNN(nn.Module):
             )
         )
 
+    def no_weight_decay_params(self) -> list[nn.Parameter]:
+        """
+        Return featureless per-node-type embedding weights, excluded from
+        weight decay for the same reason as TabularInputEncoder's embeddings
+        (see its ``no_weight_decay_params`` docstring): most rows are touched
+        rarely by neighbor sampling, and Adam turns decay-only gradients on
+        those rows into ~lr-sized updates instead of negligible ones.
+        """
+        node_embeddings = getattr(self, "node_embeddings", None)
+        if node_embeddings is None:
+            return []
+        return [emb.weight for emb in node_embeddings.values()]
+
     def forward(
         self,
         x_dict: dict[str, torch.Tensor | None],

@@ -109,6 +109,25 @@ class TabularInputEncoder(nn.Module):
         return torch.cat(parts, dim=1)
 
     # ------------------------------------------------------------------
+    # Optimizer configuration
+    # ------------------------------------------------------------------
+    def no_weight_decay_params(self) -> list[nn.Parameter]:
+        """
+        Return embedding-table weights that should be excluded from weight decay.
+
+        Under Adam, a "tiny" decay-only gradient (weight_decay * param) on a
+        row that goes untouched between rare appearances in a batch still
+        gets normalised by its own recent magnitude, producing an update of
+        order `lr` rather than order `weight_decay` - large enough to erase
+        learned signal for infrequently-seen categories/hash buckets (see
+        Loshchilov & Hutter, "Decoupled Weight Decay Regularization", 2019).
+        High-cardinality hashed columns (Actor1/2Name, the *_FeatureID
+        columns) are the most exposed since most of their rows are touched
+        only a handful of times across training.
+        """
+        return [emb.weight for emb in self.embeddings.values()]
+
+    # ------------------------------------------------------------------
     # Utils
     # ------------------------------------------------------------------
     @staticmethod
