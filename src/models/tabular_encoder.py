@@ -68,6 +68,7 @@ class TabularInputEncoder(nn.Module):
                 num_embeddings=cardinality + 1,
                 embedding_dim=emb_dim,
                 padding_idx=0,
+                sparse=True,  # only sampled rows get updated; see sparse_grad_params()
             )
             self.output_dim += emb_dim
 
@@ -124,6 +125,20 @@ class TabularInputEncoder(nn.Module):
         High-cardinality hashed columns (Actor1/2Name, the *_FeatureID
         columns) are the most exposed since most of their rows are touched
         only a handful of times across training.
+        """
+        return [emb.weight for emb in self.embeddings.values()]
+
+    def sparse_grad_params(self) -> list[nn.Parameter]:
+        """
+        Return embedding weights that require SparseAdam (not plain Adam).
+
+        These are the same params as no_weight_decay_params(), but the two
+        are conceptually distinct: this one exists because sparse=True
+        makes their .grad a torch.sparse tensor, which plain Adam can't
+        consume. Kept separate since a class could have one property
+        without the other (e.g. an embedding used via its full .weight
+        matrix rather than indexed lookup never produces a sparse grad,
+        even if it should still skip weight decay).
         """
         return [emb.weight for emb in self.embeddings.values()]
 

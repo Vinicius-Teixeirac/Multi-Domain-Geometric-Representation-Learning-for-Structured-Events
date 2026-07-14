@@ -15,7 +15,7 @@ from typing import Any, Dict, Optional, Iterable, cast
 
 import torch
 import torch.nn as nn
-from torch.optim import Adam
+from torch.optim import Adam, SparseAdam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -27,44 +27,98 @@ from src.config.paths import ARTIFACTS_DATA
 logger = get_logger(__name__)
 
 
-def _build_param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
+def _split_optimizer_params(
+    model: nn.Module,
+) -> tuple[list[nn.Parameter], list[nn.Parameter], list[nn.Parameter]]:
     """
-    Split model parameters into weight-decay and no-decay optimizer groups.
+    Partition model parameters into (decay, no_decay_dense, sparse) groups.
 
-    Any submodule may opt its parameters out of weight decay by implementing
-    ``no_weight_decay_params() -> list[nn.Parameter]`` (e.g. TabularInputEncoder's
-    embedding tables, HeterogeneousGNN's featureless node embeddings). This
-    keeps train_model architecture-agnostic: models without sparsely-updated
-    embedding tables (MLP heads, BERT, homogeneous GNN convs) are unaffected.
-
-    Parameters
-    ----------
-    model : nn.Module
-        Model whose parameters will be optimized.
-    weight_decay : float
-        Weight decay applied to all parameters not opted out.
-
-    Returns
-    -------
-    list[dict]
-        Param-group list for the Adam constructor.
+    A submodule opts params out of weight decay via ``no_weight_decay_params()``,
+    and separately opts params into SparseAdam via ``sparse_grad_params()`` -
+    the two are distinct because only params whose .grad is an actual
+    torch.sparse tensor (e.g. TabularInputEncoder's sparse=True embeddings)
+    are safe to hand to SparseAdam. Params in both sets go to sparse_params
+    only, since SparseAdam already implies no weight decay.
     """
     no_decay_ids: set[int] = set()
+    sparse_ids: set[int] = set()
     for module in model.modules():
         get_no_decay = getattr(module, "no_weight_decay_params", None)
         if callable(get_no_decay):
             no_decay_ids.update(id(p) for p in get_no_decay())
+        get_sparse = getattr(module, "sparse_grad_params", None)
+        if callable(get_sparse):
+            sparse_ids.update(id(p) for p in get_sparse())
 
-    if not no_decay_ids:
-        return [{"params": list(model.parameters()), "weight_decay": weight_decay}]
+    decay_params: list[nn.Parameter] = []
+    no_decay_params: list[nn.Parameter] = []
+    sparse_params: list[nn.Parameter] = []
+    for p in model.parameters():
+        if id(p) in sparse_ids:
+            sparse_params.append(p)
+        elif id(p) in no_decay_ids:
+            no_decay_params.append(p)
+        else:
+            decay_params.append(p)
 
-    decay_params = [p for p in model.parameters() if id(p) not in no_decay_ids]
-    no_decay_params = [p for p in model.parameters() if id(p) in no_decay_ids]
+    return decay_params, no_decay_params, sparse_params
 
-    return [
-        {"params": decay_params, "weight_decay": weight_decay},
-        {"params": no_decay_params, "weight_decay": 0.0},
-    ]
+
+class _DenseSparseOptimizer:
+    """
+    Routes dense params through Adam and sparse-gradient embedding params
+    through SparseAdam.
+
+    A single Adam instance can't consume sparse gradients, and SparseAdam
+    can't consume dense params or weight_decay, so the two live in separate
+    optimizer instances (see _split_optimizer_params). Each gets its own
+    ReduceLROnPlateau, since the scheduler requires a real torch.optim.Optimizer.
+    Exposes the subset of the Optimizer/scheduler interface train_model needs.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        lr: float,
+        weight_decay: float,
+        scheduler_mode: str,
+        scheduler_patience: int,
+        scheduler_factor: float,
+    ):
+        decay_params, no_decay_params, sparse_params = _split_optimizer_params(model)
+
+        dense_groups = [{"params": decay_params, "weight_decay": weight_decay}]
+        if no_decay_params:
+            dense_groups.append({"params": no_decay_params, "weight_decay": 0.0})
+
+        self._dense = Adam(dense_groups, lr=lr)
+        self._sparse = SparseAdam(sparse_params, lr=lr) if sparse_params else None
+
+        self._schedulers = [
+            ReduceLROnPlateau(opt, mode=scheduler_mode, patience=scheduler_patience, factor=scheduler_factor)
+            for opt in (self._dense, self._sparse)
+            if opt is not None
+        ]
+
+    def zero_grad(self) -> None:
+        self._dense.zero_grad()
+        if self._sparse is not None:
+            self._sparse.zero_grad()
+
+    def step(self) -> None:
+        self._dense.step()
+        if self._sparse is not None:
+            self._sparse.step()
+
+    def scheduler_step(self, metric: float) -> None:
+        for scheduler in self._schedulers:
+            scheduler.step(metric)
+
+    def state_dict(self) -> dict:
+        return {
+            "dense": self._dense.state_dict(),
+            "sparse": self._sparse.state_dict() if self._sparse is not None else None,
+        }
 
 
 def train_model(
@@ -99,7 +153,7 @@ def train_model(
         lr: Initial learning rate for the Adam optimizer.
         weight_decay: L2 weight decay passed to the Adam optimizer. Excluded
             for any submodule's params returned by its
-            ``no_weight_decay_params()`` (see ``_build_param_groups``).
+            ``no_weight_decay_params()`` (see ``_split_optimizer_params``).
         class_weights: Optional per-class weights for CrossEntropyLoss,
             e.g. to counter class imbalance.
         dataset_name: Dataset name, used to build the checkpoint output
@@ -123,14 +177,18 @@ def train_model(
     model.to(device)
 
     criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
-    optimizer = Adam(_build_param_groups(model, weight_decay), lr=lr)
 
     # LR patience is deliberately tighter than early-stop patience (1/5th of
     # it) so the learning rate drops and gives training a chance to recover
     # before early stopping gives up entirely.
     effective_lr_patience = lr_patience if lr_patience is not None else max(1, patience // 5)
-    scheduler = ReduceLROnPlateau(
-        optimizer, mode="max", patience=effective_lr_patience, factor=0.5  # halve LR on plateau (standard convention)
+    optimizer = _DenseSparseOptimizer(
+        model,
+        lr=lr,
+        weight_decay=weight_decay,
+        scheduler_mode="max",
+        scheduler_patience=effective_lr_patience,
+        scheduler_factor=0.5,  # halve LR on plateau (standard convention)
     )
 
     out_dir = ARTIFACTS_DATA / dataset_name / "models" / model.__class__.__name__ / exp_id
@@ -181,8 +239,8 @@ def train_model(
 
             metrics = compute_classification_metrics(logits, targets)
             val_metric = metrics[metric]
-            
-            scheduler.step(val_metric)
+
+            optimizer.scheduler_step(val_metric)
 
             if val_metric > best_metric:
                 best_metric = val_metric
