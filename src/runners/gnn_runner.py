@@ -144,20 +144,30 @@ def run_gnn(cfg: Dict[str, Any]) -> Dict[str, Any]:
         # Model construction
         # ------------------------------
         if node_feature_policy == "all":
-            in_channels = data.x.size(1)
+            encoder = TabularInputEncoder(
+                categorical_cardinalities=getattr(data, "x_cat_cardinalities", {}),
+                numeric_dim=(
+                    data.x_num.size(1)
+                    if getattr(data, "x_num", None) is not None
+                    else 0
+                ),
+                embedding_dim_rule=cfg["model"].get("embedding_dim_rule", "sqrt"),
+                embedding_dropout=cfg["model"].get("embedding_dropout", 0.2),
+            )
 
             model = HomogeneousGNN(
                 conv_type=cfg["model"]["name"],
-                in_channels=in_channels,
+                in_channels=encoder.output_dim,
                 hidden_channels=cfg["model"]["hidden_dim"],
                 out_channels=NUM_QUAD_CLASSES,
                 num_layers=cfg["model"]["num_layers"],
                 dropout=cfg["model"]["dropout"],
                 heads=cfg["model"].get("heads", 1),
+                encoder=encoder,
             )
 
             architecture = {
-                "input_dim": in_channels,
+                "input_dim": encoder.output_dim,
                 "hidden_dim": cfg["model"]["hidden_dim"],
                 "num_layers": cfg["model"]["num_layers"],
                 "heads": cfg["model"].get("heads", 1),

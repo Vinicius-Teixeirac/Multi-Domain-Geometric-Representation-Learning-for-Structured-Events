@@ -38,8 +38,11 @@ class HomogeneousGNN(nn.Module):
         heads : int
             Number of attention heads (GAT only; ignored by SAGE and GIN).
         encoder : nn.Module or None
-            Optional tabular input encoder; not used by the forward method
-            directly (applied by the caller before forward if needed).
+            Optional tabular input encoder (TabularInputEncoder) used by
+            forward_batch to build node features from raw x_cat/x_num each
+            batch, so its embeddings train jointly with the GNN. None means
+            batch.x is used as-is (e.g. the constant dummy feature under the
+            "none" node-feature policy).
         """
         super().__init__()
         self.encoder = encoder
@@ -154,7 +157,9 @@ class HomogeneousGNN(nn.Module):
         """
         batch = batch.to(device)
 
-        if hasattr(batch, "x") and batch.x is not None:
+        if self.encoder is not None:
+            x = self._encode_batch(batch)
+        elif hasattr(batch, "x") and batch.x is not None:
             x = batch.x
             assert isinstance(x, torch.Tensor)
         else:
@@ -173,3 +178,31 @@ class HomogeneousGNN(nn.Module):
             targets = targets[: batch.batch_size]
 
         return logits, targets
+
+    def _encode_batch(self, batch: Data) -> torch.Tensor:
+        """
+        Build node features from batch.x_cat/x_num via self.encoder.
+
+        x_cat/x_num are attached to the full split graph as full-length
+        tensors (see homogeneous/loaders.py); NeighborLoader doesn't slice
+        dict-valued attributes automatically, so any tensor whose first
+        dimension doesn't already match the sampled batch is indexed by
+        batch.n_id (absent in full-batch mode, where sizes already match).
+        """
+        num_nodes = batch.num_nodes
+        x_cat = batch.x_cat
+        x_num = getattr(batch, "x_num", None)
+
+        if isinstance(x_cat, dict) and hasattr(batch, "n_id"):
+            n_id = batch.n_id
+            x_cat = {
+                k: (v[n_id] if v.size(0) != num_nodes else v)
+                for k, v in x_cat.items()
+            }
+
+        if x_num is not None and hasattr(batch, "n_id"):
+            n_id = batch.n_id
+            if x_num.size(0) != num_nodes:
+                x_num = x_num[n_id]
+
+        return self.encoder(x_cat, x_num)

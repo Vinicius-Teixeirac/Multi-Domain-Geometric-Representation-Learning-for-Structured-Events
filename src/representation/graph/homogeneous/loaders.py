@@ -16,7 +16,6 @@ from torch_geometric.loader import NeighborLoader
 from src.representation.graph.homogeneous.builder import (
     HomogeneousEventGraphBuilder,
 )
-from src.models.tabular_encoder import TabularInputEncoder
 from src.config.paths import ENTITIES_DATA, FEATURES_DATA, ARTIFACTS_DATA, GRAPHS_DATA
 from src.config.schema.columns_schema import COLUMNS_SCHEMA
 from src.utils.categorical_cardinalities import load_categorical_cardinalities
@@ -68,41 +67,44 @@ def _infer_feature_groups(df: pd.DataFrame):
     return categorical_cols, numeric_cols
 
 
-def _build_node_features(
+def _inject_node_features(
+    *,
+    data: Data,
     dataset_name: str,
     split: str,
     policy: str,
-    num_nodes: int,
     split_tag: str = "default",
-):
+) -> None:
     """
-    Build the node feature matrix for a homogeneous event graph.
+    Attach node features to a homogeneous event graph, in place.
 
     Parameters
     ----------
+    data : Data
+        Graph to mutate.
     dataset_name : str
         Dataset directory name.
     split : str
         Split name ('train', 'valid', or 'test').
     policy : str
-        Feature policy: 'none' returns a (num_nodes, 1) constant tensor;
-        'all' loads encoded tabular features and runs them through a
-        TabularInputEncoder to produce a dense float matrix.
-    num_nodes : int
-        Number of nodes in the graph (used for the 'none' dummy tensor).
+        'none': attach a constant (num_nodes, 1) dummy tensor as data.x
+        (structure-only GNN). 'all': attach raw per-column categorical
+        indices (data.x_cat), numeric features (data.x_num), and
+        cardinalities (data.x_cat_cardinalities). HomogeneousGNN builds
+        the actual dense feature matrix via its own TabularInputEncoder
+        inside forward_batch, so the embeddings train jointly with the GNN
+        instead of being frozen at a random init (mirrors HeterogeneousGNN,
+        see heterogeneous/node_features.py).
     split_tag : str
         Split regime identifier.
-
-    Returns
-    -------
-    torch.FloatTensor of shape (num_nodes, feat_dim)
     """
 
     # --------------------------------------------------
     # Featureless mode -> constant dummy features
     # --------------------------------------------------
     if policy == "none":
-        return torch.ones((num_nodes, 1), dtype=torch.float)
+        data.x = torch.ones((data.num_nodes, 1), dtype=torch.float)
+        return
 
     if policy != "all":
         raise ValueError(f"Unknown node feature policy '{policy}'")
@@ -165,16 +167,12 @@ def _build_node_features(
         artifacts_dir=artifacts_dir,
     )
 
-    encoder = TabularInputEncoder(
-        categorical_cardinalities=cat_cardinalities,
-        numeric_dim=x_num.size(1) if x_num is not None else 0,
-    )
+    if x_cat:
+        data.x_cat = x_cat
+        data.x_cat_cardinalities = cat_cardinalities
 
-    encoder.eval()
-    with torch.no_grad():
-        x = encoder(x_cat, x_num)
-
-    return x
+    if x_num is not None:
+        data.x_num = x_num
 
 
 # ---------------------------------------------------------------------
@@ -207,7 +205,7 @@ def _build_split_loader(
     num_neighbors : list[int] or None
         Neighbour fanout per GNN layer; None means full-batch loading.
     node_feature_policy : str
-        Forwarded to _build_node_features ("none" or "all").
+        Forwarded to _inject_node_features ("none" or "all").
     shuffle : bool
         Whether to shuffle seed nodes each epoch (True for train, False
         for valid/test).
@@ -242,21 +240,20 @@ def _build_split_loader(
 
     save_graph(graph, path)
 
-    x = _build_node_features(
-        dataset_name=dataset_name,
-        split=split,
-        policy=node_feature_policy,
-        num_nodes=graph["num_nodes"],
-        split_tag=split_tag,
-    )
-
     data = Data(
-        x=x,
         edge_index=graph["edge_index"],
         y=graph["y"],
     )
 
     data.num_nodes = graph["num_nodes"]
+
+    _inject_node_features(
+        data=data,
+        dataset_name=dataset_name,
+        split=split,
+        policy=node_feature_policy,
+        split_tag=split_tag,
+    )
 
     if num_neighbors is None:
         # PyG's DataLoader collates Data into a Batch with batch_size=1
