@@ -82,7 +82,11 @@ class HeterogeneousGNN(nn.Module):
             self.node_embeddings = nn.ModuleDict()
             if num_nodes_per_type is not None:
                 for ntype, n in num_nodes_per_type.items():
-                    self.node_embeddings[ntype] = nn.Embedding(n, hidden_channels)
+                    # sparse=True: a NeighborLoader batch only ever indexes a
+                    # subset of rows: see TabularInputEncoder.sparse_grad_params.
+                    self.node_embeddings[ntype] = nn.Embedding(
+                        n, hidden_channels, sparse=True
+                    )
             in_channels = hidden_channels
 
         # First layer
@@ -133,10 +137,24 @@ class HeterogeneousGNN(nn.Module):
             return []
         return [emb.weight for emb in node_embeddings.values()]
 
+    def sparse_grad_params(self) -> list[nn.Parameter]:
+        """
+        Return featureless per-node-type embedding weights that require
+        SparseAdam - see TabularInputEncoder.sparse_grad_params() for why
+        this is distinct from no_weight_decay_params(). Valid here because
+        these embeddings are now indexed via n_id_dict (sparse=True), not
+        taken whole via their full .weight matrix.
+        """
+        node_embeddings = getattr(self, "node_embeddings", None)
+        if node_embeddings is None:
+            return []
+        return [emb.weight for emb in node_embeddings.values()]
+
     def forward(
         self,
         x_dict: dict[str, torch.Tensor | None],
         edge_index_dict: dict[tuple[str, str, str], torch.Tensor],
+        n_id_dict: dict[str, torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
         """
         Run heterogeneous message passing and return per-node-type logits.
@@ -151,6 +169,11 @@ class HeterogeneousGNN(nn.Module):
             (learnable embedding) handling for that node type.
         edge_index_dict : dict[(src, rel, dst), torch.Tensor of shape (2, E_r)]
             Per-relation edge index tensors, keyed by (src_type, rel_name, dst_type).
+        n_id_dict : dict[str, torch.Tensor] or None
+            Per-node-type global node ids for the current (possibly
+            neighbor-sampled) batch, used to index into node_embeddings for
+            any node type with x_dict[node_type] is None. Ignored for node
+            types with real features.
 
         Returns
         -------
@@ -158,13 +181,14 @@ class HeterogeneousGNN(nn.Module):
             Per-node-type output logits.
         """
         if self.conv_type == "han":
-            return self._forward_han(x_dict, edge_index_dict)
-        return self._forward_flattened(x_dict, edge_index_dict)
+            return self._forward_han(x_dict, edge_index_dict, n_id_dict)
+        return self._forward_flattened(x_dict, edge_index_dict, n_id_dict)
 
     def _forward_flattened(
         self,
         x_dict: dict[str, torch.Tensor | None],
         edge_index_dict: dict[tuple[str, str, str], torch.Tensor],
+        n_id_dict: dict[str, torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
         """
         Run RGCN/RGAT by converting to a homogeneous graph, then unflatten the output.
@@ -176,6 +200,8 @@ class HeterogeneousGNN(nn.Module):
             (learnable embedding) handling for that node type.
         edge_index_dict : dict[(src, rel, dst), torch.Tensor of shape (2, E_r)]
             Per-relation edge index tensors.
+        n_id_dict : dict[str, torch.Tensor] or None
+            Per-node-type global node ids, see forward().
 
         Returns
         -------
@@ -186,12 +212,9 @@ class HeterogeneousGNN(nn.Module):
 
         for node_type, x in x_dict.items():
             if x is None:
-                num_nodes = data[node_type].num_nodes
-                if node_type not in self.node_embeddings:
-                    self.node_embeddings[node_type] = nn.Embedding(
-                        num_nodes, self.hidden_dim
-                    ).to(next(self.parameters()).device)
-                data[node_type].x = self.node_embeddings[node_type].weight
+                data[node_type].x = self._featureless_embedding(
+                    node_type, n_id_dict, edge_index_dict
+                )
             else:
                 data[node_type].x = x
 
@@ -214,6 +237,7 @@ class HeterogeneousGNN(nn.Module):
         self,
         x_dict: dict[str, torch.Tensor | None],
         edge_index_dict: dict[tuple[str, str, str], torch.Tensor],
+        n_id_dict: dict[str, torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
         """
         Run HAN message-passing on the heterogeneous graph natively.
@@ -228,6 +252,8 @@ class HeterogeneousGNN(nn.Module):
             (learnable embedding) handling for that node type.
         edge_index_dict : dict[(src, rel, dst), torch.Tensor of shape (2, E_r)]
             Per-relation edge index tensors.
+        n_id_dict : dict[str, torch.Tensor] or None
+            Per-node-type global node ids, see forward().
 
         Returns
         -------
@@ -237,13 +263,9 @@ class HeterogeneousGNN(nn.Module):
         resolved: dict[str, torch.Tensor] = {}
         for node_type, x in x_dict.items():
             if x is None:
-                num_nodes = self._infer_num_nodes(node_type, edge_index_dict)
-                if node_type not in self.node_embeddings:
-                    self.node_embeddings[node_type] = nn.Embedding(
-                        num_nodes, self.hidden_dim
-                    ).to(next(self.parameters()).device)
-                embedding = cast(nn.Embedding, self.node_embeddings[node_type])
-                resolved[node_type] = embedding.weight
+                resolved[node_type] = self._featureless_embedding(
+                    node_type, n_id_dict, edge_index_dict
+                )
             else:
                 resolved[node_type] = x
 
@@ -272,6 +294,36 @@ class HeterogeneousGNN(nn.Module):
             if dst == node_type:
                 max_idx = max(max_idx, int(edge_index[1].max()))
         return max_idx + 1
+
+    def _featureless_embedding(
+        self,
+        node_type: str,
+        n_id_dict: dict[str, torch.Tensor] | None,
+        edge_index_dict: dict[tuple[str, str, str], torch.Tensor],
+    ) -> torch.Tensor:
+        """
+        Look up node_type's learnable per-node embedding at n_id_dict's global
+        node ids, so the lookup stays correct when a NeighborLoader batch only
+        contains a subset of the full split's nodes for that type - taking
+        the embedding's whole .weight matrix (as if every batch covered every
+        node) would misalign features to nodes under sampling.
+
+        Lazily creates the table, sized off the current batch's own edges, if
+        it wasn't pre-populated via num_nodes_per_type at construction time.
+        That undercounts the true full-split size under sampling; in
+        practice gnn_runner.py always passes num_nodes_per_type precisely to
+        avoid ever hitting this fallback.
+        """
+        if node_type not in self.node_embeddings:
+            num_nodes = self._infer_num_nodes(node_type, edge_index_dict)
+            self.node_embeddings[node_type] = nn.Embedding(
+                num_nodes, self.hidden_dim, sparse=True
+            ).to(next(self.parameters()).device)
+
+        embedding = cast(nn.Embedding, self.node_embeddings[node_type])
+        if n_id_dict is not None and node_type in n_id_dict:
+            return embedding(n_id_dict[node_type])
+        return embedding.weight
 
     def _make_conv(
         self,
@@ -368,8 +420,11 @@ class HeterogeneousGNN(nn.Module):
         """
         Move a HeteroData batch to device, run forward, and return (logits, targets).
 
-        Handles both featureless mode (zero initialisation) and encoded mode
-        (uses self.encoder to build event node features from x_cat/x_num).
+        Handles both featureless mode (every node type routes through its own
+        learnable node_embeddings, addressed by n_id) and encoded mode (uses
+        self.encoder to build event node features from x_cat/x_num; other
+        node types stay zero-filled, since only "event" nodes carry tabular
+        data under the "all" policy - see homogeneous/node_features.py).
         Slices logits and targets to batch_size to exclude sampled neighbourhood nodes.
 
         Parameters
@@ -386,15 +441,10 @@ class HeterogeneousGNN(nn.Module):
         """
         batch = batch.to(device)
 
-        x_dict = {}
-        event_store = batch[self.event_type]
-        num_nodes = event_store.y.size(0)
+        if self.encoder is not None:
+            event_store = batch[self.event_type]
+            num_nodes = event_store.y.size(0)
 
-        if self.encoder is None:
-            x_event = event_store.y.new_zeros(
-                (num_nodes, self.hidden_dim)
-            ).float()
-        else:
             # When features were attached as full-length tensors on the
             # HeteroData object (one tensor per event in the split), the
             # NeighborLoader / batching will not automatically slice dict
@@ -406,7 +456,6 @@ class HeterogeneousGNN(nn.Module):
 
             if isinstance(x_cat, dict) and hasattr(event_store, "n_id"):
                 n_id = event_store.n_id
-                # build a sliced dict where needed
                 x_cat = {
                     k: (v[n_id] if v.size(0) != num_nodes else v)
                     for k, v in x_cat.items()
@@ -419,16 +468,26 @@ class HeterogeneousGNN(nn.Module):
 
             x_event = self.encoder(x_cat, x_num)
 
-        x_dict[self.event_type] = x_event
+            x_dict = {self.event_type: x_event}
+            for node_type in batch.node_types:
+                if node_type == self.event_type:
+                    continue
+                x_dict[node_type] = x_event.new_zeros(
+                    (batch[node_type].num_nodes, x_event.size(1))
+                )
+            n_id_dict = None
+        else:
+            x_dict = {node_type: None for node_type in batch.node_types}
+            n_id_dict = {
+                node_type: (
+                    batch[node_type].n_id
+                    if hasattr(batch[node_type], "n_id")
+                    else torch.arange(batch[node_type].num_nodes, device=device)
+                )
+                for node_type in batch.node_types
+            }
 
-        for node_type in batch.node_types:
-            if node_type == self.event_type:
-                continue
-            x_dict[node_type] = x_event.new_zeros(
-                (batch[node_type].num_nodes, x_event.size(1))
-            )
-
-        out = self.forward(x_dict, batch.edge_index_dict)
+        out = self.forward(x_dict, batch.edge_index_dict, n_id_dict)
 
         logits = out[self.event_type][: batch[self.event_type].batch_size]
         targets = batch[self.event_type].y[: batch[self.event_type].batch_size]
