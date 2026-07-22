@@ -166,7 +166,7 @@ def run_multi_domain(
     checkpoint_path = best_model_path
 
     logger.info("Evaluating on test set ...")
-    metrics, confusion = evaluate_model(
+    metrics, confusion, profile = evaluate_model(
         model=model,
         test_loader=dm.test_dataloader(),
         checkpoint_path=checkpoint_path,
@@ -205,13 +205,19 @@ def run_multi_domain(
             "fusion":   model_cfg["fusion"],
             "actor_nodes": dm.actor_graph.num_nodes,
             "actor_edges": int(dm.actor_graph.edge_index.shape[1]) if dm.actor_graph.edge_index is not None else 0,
+            "gflops_per_sample": profile["gflops_per_sample"],
+            "profiled_batch_size": profile["profiled_batch_size"],
         },
         "artifacts": {
             "best_model_path": str(checkpoint_path),
         },
         "metrics": make_json_serializable(metrics),
         "confusion_matrix": make_json_serializable(confusion),
-        "hardware": gpu_info,
+        "hardware": {
+            **gpu_info,
+            "latency_ms_per_batch": profile["latency_ms_per_batch"],
+            "throughput_samples_per_sec": profile["throughput_samples_per_sec"],
+        },
     }
 
     results_path = save_runner_results(results, results_dir, "multi_domain")

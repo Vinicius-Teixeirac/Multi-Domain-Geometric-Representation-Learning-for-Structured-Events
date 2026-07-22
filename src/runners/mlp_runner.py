@@ -117,7 +117,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
     # ----------------------
     # Evaluation
     # ----------------------
-    metrics, confusion = evaluate_model(
+    metrics, confusion, profile = evaluate_model(
         model=model,
         test_loader=dm.test_dataloader(),
         checkpoint_path=best_model_path,
@@ -157,13 +157,19 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
             "hidden_dims": cfg["model"]["hidden_dims"],
             "categorical_cardinalities": dm.categorical_cardinalities,
             "numeric_dim": len(dm.numeric_cols),
+            "gflops_per_sample": profile["gflops_per_sample"],
+            "profiled_batch_size": profile["profiled_batch_size"],
         },
         "artifacts": {
             "best_model_path": str(best_model_path),
         },
         "metrics": make_json_serializable(metrics),
         "confusion_matrix": make_json_serializable(confusion),
-        "hardware": gpu_info,
+        "hardware": {
+            **gpu_info,
+            "latency_ms_per_batch": profile["latency_ms_per_batch"],
+            "throughput_samples_per_sec": profile["throughput_samples_per_sec"],
+        },
     }
 
     save_runner_results(results, results_dir, "mlp")

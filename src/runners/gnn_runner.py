@@ -331,7 +331,7 @@ def run_gnn(cfg: Dict[str, Any]) -> Dict[str, Any]:
     # EVALUATION
     # ==============================================================
 
-    metrics, confusion = evaluate_model(
+    metrics, confusion, profile = evaluate_model(
         model=model,
         test_loader=test_loader,
         checkpoint_path=best_model_path,
@@ -346,6 +346,11 @@ def run_gnn(cfg: Dict[str, Any]) -> Dict[str, Any]:
     # SAVE RESULTS
     # ==============================================================
 
+    architecture["graph_type"] = graph_type
+    architecture["node_feature_policy"] = node_feature_policy
+    architecture["gflops_per_sample"] = profile["gflops_per_sample"]
+    architecture["profiled_batch_size"] = profile["profiled_batch_size"]
+
     results_dir = RESULTS_DIR / dataset / model.__class__.__name__
     results = {
         "exp_id": exp_id,
@@ -354,8 +359,6 @@ def run_gnn(cfg: Dict[str, Any]) -> Dict[str, Any]:
         "split_tag": split_tag,
         "model_family": "gnn",
         "model_name": cfg["model"]["name"],
-        "graph_type": graph_type,
-        "node_feature_policy": node_feature_policy,
         "num_parameters": num_params,
         "runtime_seconds": round(runtime_sec, 3),
         "training": {
@@ -374,7 +377,11 @@ def run_gnn(cfg: Dict[str, Any]) -> Dict[str, Any]:
         },
         "metrics": make_json_serializable(metrics),
         "confusion_matrix": make_json_serializable(confusion),
-        "hardware": gpu_info,
+        "hardware": {
+            **gpu_info,
+            "latency_ms_per_batch": profile["latency_ms_per_batch"],
+            "throughput_samples_per_sec": profile["throughput_samples_per_sec"],
+        },
     }
 
     save_runner_results(results, results_dir, "gnn")
