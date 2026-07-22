@@ -31,6 +31,7 @@ dev = ["pytest>=9.0.3", "pytest-cov"]
 package = false
 find-links = ["https://data.pyg.org/whl/torch-2.10.0+cu126.html"]
 no-build-package = ["pyg-lib"]
+constraint-dependencies = ["setuptools>=83.0.0"]
 
 [[tool.uv.index]]
 name = "pytorch-cu126"
