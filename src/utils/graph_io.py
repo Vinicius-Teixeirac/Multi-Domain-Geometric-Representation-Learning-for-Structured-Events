@@ -5,6 +5,17 @@ from typing import Union
 
 import torch
 from torch_geometric.data import Data, HeteroData
+from torch_geometric.data.data import DataEdgeAttr, DataTensorAttr
+from torch_geometric.data.storage import (
+    BaseStorage,
+    EdgeStorage,
+    GlobalStorage,
+    NodeStorage,
+)
+
+torch.serialization.add_safe_globals(
+    [Data, HeteroData, DataEdgeAttr, DataTensorAttr, BaseStorage, NodeStorage, EdgeStorage, GlobalStorage]
+)
 
 
 def save_graph(graph: Union[Data, HeteroData], path: Path) -> None:
@@ -34,11 +45,5 @@ def load_graph(path: Path) -> Union[Data, HeteroData]:
     Returns
     -------
     torch_geometric.data.Data or HeteroData
-
-    Notes
-    -----
-    Uses `weights_only=False`: the file holds a Data/HeteroData object, not a
-    plain tensor/state_dict, so torch.load's restricted safe-unpickler
-    (weights_only=True) cannot deserialize it.
     """
-    return torch.load(path, weights_only=False)
+    return torch.load(path, weights_only=True)
