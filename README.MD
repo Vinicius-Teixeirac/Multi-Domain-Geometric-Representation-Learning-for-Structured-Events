@@ -56,9 +56,9 @@ This repository backs a comparative study on **representation learning and induc
 | Component | Version | Purpose |
 |-----------|---------|---------|
 | Python | ≥3.12 | Runtime |
-| PyTorch | 2.4.1 (cu121) | Core tensor / autograd engine |
-| PyTorch Geometric | 2.7.0 (+ `pyg-lib`, `torch-sparse`) | GNN layers (SAGE, GAT, GIN, RGCN, HAN, RGAT) |
-| Transformers | 4.57.3 | BERT baseline |
+| PyTorch | 2.10.0 (cu126) | Core tensor / autograd engine |
+| PyTorch Geometric | 2.8.0.post1 (+ `pyg-lib`) | GNN layers (SAGE, GAT, GIN, RGCN, HAN, RGAT) |
+| Transformers | 5.5.0 | BERT baseline |
 | pandas / pyarrow | 2.3.3 / 23.0.1 | Tabular data + parquet I/O |
 | scikit-learn / scipy | 1.8.0 / 1.16.3 | Preprocessing, metrics |
 | matplotlib / seaborn | 3.10.8 / 0.13.2 | EDA and figures (notebooks) |
@@ -73,21 +73,21 @@ Dependencies are pinned in `pyproject.toml` / `uv.lock`.
 ```bash
 uv sync
 ```
-The `pyproject.toml` and `uv.lock` already point to the correct PyTorch CUDA 12.1 and PyG wheel indices, no extra flags needed. Verified end-to-end on both platforms (full test suite + real CUDA training): PyG now ships `pyg-lib` wheels for Windows too, so no platform-specific workaround is needed.
+The `pyproject.toml` and `uv.lock` already point to the correct PyTorch CUDA 12.6 and PyG wheel indices, no extra flags needed. Verified end-to-end on both platforms (full test suite + real CUDA training): PyG ships `pyg-lib` wheels for Windows too, so no platform-specific workaround is needed. Note the CUDA index is 12.6, not 12.1: PyG stopped publishing Windows wheels for `pyg-lib` against cu121 past PyTorch 2.4, so cu126 is required from PyTorch 2.6 onward.
 
 **Plain pip (Linux and Windows):**
 ```bash
-pip install torch==2.4.1+cu121 torchvision==0.19.1+cu121 \
-  --index-url https://download.pytorch.org/whl/cu121
+pip install torch==2.10.0+cu126 torchvision==0.25.0+cu126 \
+  --index-url https://download.pytorch.org/whl/cu126
 
-pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv \
-  -f https://data.pyg.org/whl/torch-2.4.1+cu121.html
+pip install pyg_lib \
+  -f https://data.pyg.org/whl/torch-2.10.0+cu126.html
 
 pip install torch-geometric transformers pandas scikit-learn scipy \
   matplotlib seaborn pyarrow pyyaml tqdm networkx
 ```
 
-> If `pyg-lib`/`torch_scatter`/etc. ever have no wheel for your exact Python version, OS, or CUDA combo (e.g. a very new Python release PyG hasn't published for yet), fall back to an older, longer-supported combo such as `torch==2.2.2+cu121` (`torchvision==0.17.2+cu121`, `torchaudio==2.2.2+cu121`) with the matching `-f https://data.pyg.org/whl/torch-2.2.2+cu121.html` index, and drop `pyg_lib` from the install if it's unavailable there: torch-geometric falls back to pure-Python implementations automatically, just slower on sparse ops.
+> If `pyg-lib` ever has no wheel for your exact Python version, OS, or CUDA combo (e.g. a very new Python release PyG hasn't published for yet), fall back to an older, longer-supported combo such as `torch==2.4.1+cu121` (`torchvision==0.19.1+cu121`) with the matching `-f https://data.pyg.org/whl/torch-2.4.1+cu121.html` index, and drop `pyg_lib` from the install if it's unavailable there: torch-geometric falls back to pure-Python implementations automatically, just slower on sparse ops. Beware that PyG stopped publishing Windows `pyg-lib` wheels for some cu121 builds past PyTorch 2.4 (e.g. `torch==2.6.0+cu121` has none), check https://data.pyg.org/whl/ for your target combo before committing to it.
 
 **Conda (any platform):**
 ```bash
@@ -161,7 +161,7 @@ conda install pyg -c pyg
    - `--bert-configs` -> `src/runners/bert_runner.py`
    - `--multi-domain-configs` -> `src/runners/multi_domain_runner.py`
 
-   Each run gets a stable, MD5-derived `exp_id` used to skip already-completed runs (a results JSON must exist, not just a checkpoint), GPU memory is released between runs, and results are written as JSON under `results/{dataset}/{ModelClass}/`.
+   Each run gets a stable, MD5-derived `exp_id` used to skip already-completed runs (a results JSON must exist, not just a checkpoint), GPU memory is released between runs, and results are written as JSON under `results/{dataset}/{ModelClass}/`. Each results JSON also carries exact per-sample GFLOPs and forward-pass latency/throughput, for compute-cost comparisons across model families (`src/utils/profiling.py`).
 
 ---
 
