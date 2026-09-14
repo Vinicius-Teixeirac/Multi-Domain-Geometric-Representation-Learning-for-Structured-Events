@@ -9,13 +9,12 @@ suitable for RGCN/RGAT/HAN-style heterogeneous GNNs.
 from pathlib import Path
 from typing import Dict
 
-import pandas as pd
+import numpy as np
 import torch
 from torch_geometric.data import HeteroData
 
 from src.representation.graph.base import GraphBuilder
 from src.utils.loading import load_parquet
-from src.representation.graph.indexing import add_node_index
 
 from .edge_rules import build_event_component_edges
 
@@ -87,18 +86,19 @@ class HeterogeneousEventGraphBuilder(GraphBuilder):
         # --------------------------------------------------
         # Event node indexing
         # --------------------------------------------------
-        add_node_index(
-            df,
-            id_col=self.node_id_col,
-            index_col="event_idx",
-        )
+        # Index event nodes by row position, so the event->component edges line
+        # up with the event labels and features, which are both in entity-row
+        # order. Indexing by sorted GlobalEventID here paired each event with a
+        # different event's label.
+        df = df.reset_index(drop=True)
+        df["event_idx"] = np.arange(len(df), dtype="int64")
 
         data = HeteroData()
 
         # --------------------------------------------------
         # Event nodes
         # --------------------------------------------------
-        data[self.EVENT].num_nodes = df["event_idx"].nunique()
+        data[self.EVENT].num_nodes = len(df)
         data[self.EVENT].y = torch.tensor(
             df[self.label_col].to_numpy(dtype="int64"),
             dtype=torch.long,

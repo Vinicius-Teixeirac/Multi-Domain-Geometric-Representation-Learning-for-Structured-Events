@@ -120,6 +120,12 @@ class HomogeneousEventGraphBuilder(GraphBuilder):
             index_col="node_idx",
         )
 
+        # Order rows by node_idx so the labels below are built in node order, the
+        # same order the edges use and the order loaders.py assigns the node
+        # features. Taking labels in raw entity-row order pairs each node with a
+        # different event's label.
+        df = df.sort_values("node_idx")
+
         artifacts_dir = ARTIFACTS_DATA / self.dataset_name / "graph_artifacts" / self.split_tag
         artifacts_dir.mkdir(parents=True, exist_ok=True)
 
