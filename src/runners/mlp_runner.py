@@ -86,6 +86,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
         numeric_dim=len(dm.numeric_cols),
         hidden_dims=cfg["model"]["hidden_dims"],
         num_classes=dm.num_classes,
+        dropout=cfg["model"].get("dropout", 0.2),
     )
 
     num_params = count_trainable_parameters(model)
@@ -155,6 +156,7 @@ def run_mlp(cfg: Dict[str, Any]) -> Dict[str, Any]:
         },
         "architecture": {
             "hidden_dims": cfg["model"]["hidden_dims"],
+            "dropout": cfg["model"].get("dropout", 0.2),
             "categorical_cardinalities": dm.categorical_cardinalities,
             "numeric_dim": len(dm.numeric_cols),
             "gflops_per_sample": profile["gflops_per_sample"],
