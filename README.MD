@@ -2,22 +2,27 @@
 
 **This repository is the official experimental code release for an accepted academic paper.** It is not a general-purpose library: it is the exact codebase used to produce every baseline and ablation result reported in **"Multi-Domain Geometric Representation Learning for Structured Events,"** accepted at **BRACIS 2026** (Brazilian Conference on Intelligent Systems).
 
-> **Status:** Accepted, awaiting camera-ready / proceedings publication. The paper is not yet published; this repo will be updated with the camera-ready link/DOI once available.
+> **Status:** Camera-ready accepted; proceedings proof in production (Springer, *Intelligent Systems, BRACIS 2026*, LNAI 17107, DOI [`10.1007/978-3-032-39895-6_13`](https://doi.org/10.1007/978-3-032-39895-6_13)). Awaiting final proof approval; this repo will be updated once the chapter is live on SpringerLink.
 
 **Authors:** Vinícius T. C. Freitas, Kenzo M. Sakiyama, Ricardo M. Marcacini
 Institute of Mathematics and Computer Sciences (ICMC), University of São Paulo (USP), São Carlos, SP, Brazil
 
 ### Citation
 
-A formal citation (with DOI and proceedings details) will be added once the paper is published. In the meantime, please cite it as:
+The chapter is in final proof at Springer; page numbers/DOI below are assigned but subject to the proof approval. This will be updated once the chapter is live on SpringerLink.
 
 ```bibtex
-@inproceedings{freitas2026multidomain,
-  title     = {Multi-Domain Geometric Representation Learning for Structured Events},
+@inproceedings{freitas2027multidomain,
+  title     = {Multi-domain Geometric Representation Learning for Structured Events},
   author    = {Freitas, Vin{\'i}cius T. C. and Sakiyama, Kenzo M. and Marcacini, Ricardo M.},
-  booktitle = {Proceedings of the Brazilian Conference on Intelligent Systems (BRACIS)},
-  year      = {2026},
-  note      = {To appear}
+  editor    = {Recamonde-Mendoza, M. and Barros, R. C.},
+  booktitle = {Intelligent Systems: BRACIS 2026},
+  series    = {Lecture Notes in Artificial Intelligence (LNAI)},
+  volume    = {17107},
+  pages     = {1-16},
+  year      = {2027},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-032-39895-6_13}
 }
 ```
 
