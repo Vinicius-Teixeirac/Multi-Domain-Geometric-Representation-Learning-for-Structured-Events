@@ -42,8 +42,33 @@ logger = get_logger("MAIN")
 CAMEO_JSON_PATH = Path(__file__).resolve().parent / "notebooks" / "cameo_codes.json"
 cameo_data = load_json(CAMEO_JSON_PATH)
 
+# Every code column the verbaliser translates, with the dictionary it resolves
+# through. A column missing from this mapping is not an error there:
+# translate_code returns None for an empty dictionary and the caller drops the
+# phrase, so a missing entry silently shortens the sentence rather than
+# raising. Only columns CHOSEN_COLUMNS retains appear here.
+_ACTOR_CODE_DICTS = {
+    "Type1Code":      "ACTOR_TYPE_CODES",
+    "KnownGroupCode": "ACTOR_KNOWN_GROUP_CODES",
+    "Religion1Code":  "ACTOR_RELIGION_CODES",
+    "EthnicCode":     "ACTOR_ETHNIC_CODES",
+    "CountryCode":    "ACTOR_COUNTRY_CODES",
+}
+
 CAMEO_DICTIONARIES = {
-    "EventCode": cameo_data["EVENT_CODES"],
+    **{
+        f"{prefix}{suffix}": cameo_data[key]
+        for prefix in ("Actor1", "Actor2")
+        for suffix, key in _ACTOR_CODE_DICTS.items()
+    },
+    **{
+        column: cameo_data["FEATURE_ID_CODES"]
+        for column in (
+            "Actor1Geo_FeatureID",
+            "Actor2Geo_FeatureID",
+            "ActionGeo_FeatureID",
+        )
+    },
 }
 
 
