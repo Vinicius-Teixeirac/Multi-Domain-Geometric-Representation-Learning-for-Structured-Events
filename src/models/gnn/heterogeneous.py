@@ -82,10 +82,8 @@ class HeterogeneousGNN(nn.Module):
             self.node_embeddings = nn.ModuleDict()
             if num_nodes_per_type is not None:
                 for ntype, n in num_nodes_per_type.items():
-                    # sparse=True: a NeighborLoader batch only ever indexes a
-                    # subset of rows: see TabularInputEncoder.sparse_grad_params.
-                    self.node_embeddings[ntype] = nn.Embedding(
-                        n, hidden_channels, sparse=True
+                    self.node_embeddings[ntype] = self._make_node_embedding(
+                        ntype, n, hidden_channels
                     )
             in_channels = hidden_channels
 
@@ -295,6 +293,22 @@ class HeterogeneousGNN(nn.Module):
                 max_idx = max(max_idx, int(edge_index[1].max()))
         return max_idx + 1
 
+    def _make_node_embedding(self, node_type: str, rows: int, dim: int) -> nn.Embedding:
+        """Create the learnable table for one featureless node type.
+
+        Rows are addressed by vocabulary id (see HeterogeneousEventGraphBuilder):
+        0 is an entity training never saw, fixed at zero so it carries no
+        identity rather than a random one, and 1..n are training entities.
+        An event is new in every split, so a per-event row could only memorise
+        training labels and would be unaddressable at test time: events share
+        one learned row and are told apart by their neighbours.
+        """
+        # sparse=True: a NeighborLoader batch only ever indexes a subset of
+        # rows: see TabularInputEncoder.sparse_grad_params.
+        if node_type == self.event_type:
+            return nn.Embedding(1, dim, sparse=True)
+        return nn.Embedding(max(rows, 1), dim, padding_idx=0, sparse=True)
+
     def _featureless_embedding(
         self,
         node_type: str,
@@ -316,11 +330,21 @@ class HeterogeneousGNN(nn.Module):
         """
         if node_type not in self.node_embeddings:
             num_nodes = self._infer_num_nodes(node_type, edge_index_dict)
-            self.node_embeddings[node_type] = nn.Embedding(
-                num_nodes, self.hidden_dim, sparse=True
+            self.node_embeddings[node_type] = self._make_node_embedding(
+                node_type, num_nodes, self.hidden_dim
             ).to(next(self.parameters()).device)
 
         embedding = cast(nn.Embedding, self.node_embeddings[node_type])
+
+        if node_type == self.event_type:
+            # Every event reads the one shared row, whatever ids the batch carries.
+            if n_id_dict is not None and node_type in n_id_dict:
+                count = int(n_id_dict[node_type].numel())
+            else:
+                count = self._infer_num_nodes(node_type, edge_index_dict)
+            index = torch.zeros(count, dtype=torch.long, device=embedding.weight.device)
+            return embedding(index)
+
         if n_id_dict is not None and node_type in n_id_dict:
             return embedding(n_id_dict[node_type])
         return embedding.weight
@@ -478,9 +502,15 @@ class HeterogeneousGNN(nn.Module):
             n_id_dict = None
         else:
             x_dict = {node_type: None for node_type in batch.node_types}
+            # Embedding rows are addressed by the cross-split vocabulary id the
+            # builder attaches, which NeighborLoader slices with the batch. A
+            # node's position (n_id) is local to its split's graph and would
+            # read another entity's row outside training.
             n_id_dict = {
                 node_type: (
-                    batch[node_type].n_id
+                    batch[node_type].vocab_id
+                    if hasattr(batch[node_type], "vocab_id")
+                    else batch[node_type].n_id
                     if hasattr(batch[node_type], "n_id")
                     else torch.arange(batch[node_type].num_nodes, device=device)
                 )

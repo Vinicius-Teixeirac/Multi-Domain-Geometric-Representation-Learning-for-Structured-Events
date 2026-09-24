@@ -118,6 +118,7 @@ def _build_split_loader(
     node_feature_policy: str,
     shuffle: bool,
     split_tag: str = "default",
+    vocab: dict[str, dict] | None = None,
 ):
     """
     Build a single inductive-safe heterogeneous GNN loader for one split.
@@ -141,10 +142,15 @@ def _build_split_loader(
         for valid/test).
     split_tag : str
         Split-configuration tag identifying which parquet/artifact set to load.
+    vocab : dict or None
+        Component-entity vocabulary fitted on the training graph; None fits it
+        on this split (training only). See HeterogeneousEventGraphBuilder.
 
     Returns
     -------
-    NeighborLoader or a full-batch iterator yielding the single built graph.
+    tuple of (loader, vocab)
+        A NeighborLoader or a full-batch iterator yielding the single built
+        graph, and the vocabulary the graph was indexed with.
 
     Notes
     -----
@@ -160,6 +166,7 @@ def _build_split_loader(
         dataset_name=dataset_name,
         split=split,
         split_tag=split_tag,
+        vocab=vocab,
     )
 
     data = builder.build()
@@ -207,7 +214,7 @@ def _build_split_loader(
             shuffle=shuffle,
         )
 
-    return loader
+    return loader, builder.vocab
 
 
 # ---------------------------------------------------------------------
@@ -244,7 +251,9 @@ def make_hetero_gnn_loaders(
         dataset/split_tag (see Splitter.run's `valid_size=None` path).
     """
 
-    train_loader = _build_split_loader(
+    # Valid and test are indexed with the training vocabulary, so a learnable
+    # per-entity embedding addresses the same entity in every split.
+    train_loader, vocab = _build_split_loader(
         dataset_name=dataset_name,
         split="train",
         batch_size=batch_size,
@@ -264,12 +273,13 @@ def make_hetero_gnn_loaders(
             node_feature_policy=node_feature_policy,
             shuffle=False,
             split_tag=split_tag,
-        )
+            vocab=vocab,
+        )[0]
         if val_entities_path.exists()
         else None
     )
 
-    test_loader = _build_split_loader(
+    test_loader, _ = _build_split_loader(
         dataset_name=dataset_name,
         split="test",
         batch_size=batch_size,
@@ -277,6 +287,7 @@ def make_hetero_gnn_loaders(
         node_feature_policy=node_feature_policy,
         shuffle=False,
         split_tag=split_tag,
+        vocab=vocab,
     )
 
     return train_loader, val_loader, test_loader

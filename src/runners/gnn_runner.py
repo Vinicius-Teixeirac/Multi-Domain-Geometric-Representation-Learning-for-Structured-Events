@@ -264,8 +264,10 @@ def run_gnn(cfg: Dict[str, Any]) -> Dict[str, Any]:
             }
 
         elif node_feature_policy == "none":
+            # One row per training entity plus row 0 for entities training
+            # never saw, read off the vocabulary ids the builder attached.
             num_nodes_per_type = {
-                ntype: data[ntype].num_nodes
+                ntype: int(data[ntype].vocab_id.max()) + 1
                 for ntype in data.node_types
             }
 

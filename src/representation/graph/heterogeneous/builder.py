@@ -54,6 +54,7 @@ class HeterogeneousEventGraphBuilder(GraphBuilder):
         split_tag: str = "default",
         node_id_col: str = "GlobalEventID",
         label_col: str = "QuadClass",
+        vocab: dict[str, dict[str, int]] | None = None,
     ):
         """
         Parameters
@@ -70,6 +71,11 @@ class HeterogeneousEventGraphBuilder(GraphBuilder):
             Column whose values uniquely identify event nodes.
         label_col : str
             Column with integer class labels for event nodes.
+        vocab : dict or None
+            Per component type, the entity-to-row mapping fitted on the
+            training graph. None fits it on this split, which is only right for
+            the training split: pass the training builder's ``vocab`` when
+            building valid and test.
         """
         self.data_dir = data_dir
         self.dataset_name = dataset_name
@@ -78,6 +84,8 @@ class HeterogeneousEventGraphBuilder(GraphBuilder):
 
         self.node_id_col = node_id_col
         self.label_col = label_col
+        self.vocab: dict[str, dict[str, int]] = dict(vocab) if vocab is not None else {}
+        self._fit_vocab = vocab is None
 
     def build(self) -> HeteroData:
         """Load entity parquet for the configured split and construct the HeteroData graph."""
@@ -118,6 +126,30 @@ class HeterogeneousEventGraphBuilder(GraphBuilder):
         data[self.ACTOR2].num_nodes = len(actor2_index)
         data[self.GEO].num_nodes = len(geo_index)
         data[self.DAY].num_nodes = len(day_index)
+
+        # --------------------------------------------------
+        # Cross-split entity identity
+        # --------------------------------------------------
+        # Node positions above are local to this split, so the same actor sits
+        # at different positions in the train and test graphs. A learnable
+        # per-node embedding must therefore be addressed by an identity that
+        # is stable across splits: the row the entity was given in the
+        # training vocabulary, or 0 for an entity training never saw.
+        # Addressing it by position instead reads another entity's embedding.
+        for ntype, index in (
+            (self.ACTOR1, actor1_index),
+            (self.ACTOR2, actor2_index),
+            (self.GEO, geo_index),
+            (self.DAY, day_index),
+        ):
+            if self._fit_vocab:
+                self.vocab[ntype] = {v: i + 1 for i, v in enumerate(index)}
+            rows = self.vocab.get(ntype, {})
+            data[ntype].vocab_id = torch.tensor(
+                [rows.get(v, 0) for v in index], dtype=torch.long
+            )
+        # An event is new in every split, so it has no identity to carry.
+        data[self.EVENT].vocab_id = torch.zeros(len(df), dtype=torch.long)
 
         # --------------------------------------------------
         # Helper to attach bidirectional edges
