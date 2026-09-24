@@ -49,8 +49,11 @@ cameo_data = load_json(CAMEO_JSON_PATH)
 # raising. Only columns CHOSEN_COLUMNS retains appear here.
 _ACTOR_CODE_DICTS = {
     "Type1Code":      "ACTOR_TYPE_CODES",
+    "Type2Code":      "ACTOR_TYPE_CODES",
+    "Type3Code":      "ACTOR_TYPE_CODES",
     "KnownGroupCode": "ACTOR_KNOWN_GROUP_CODES",
     "Religion1Code":  "ACTOR_RELIGION_CODES",
+    "Religion2Code":  "ACTOR_RELIGION_CODES",
     "EthnicCode":     "ACTOR_ETHNIC_CODES",
     "CountryCode":    "ACTOR_COUNTRY_CODES",
 }

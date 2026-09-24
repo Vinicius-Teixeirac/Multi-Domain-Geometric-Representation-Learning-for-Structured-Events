@@ -59,6 +59,17 @@ def normalize_name(name: str) -> str:
     return str(name).title()
 
 
+def _unique_labels(row: Any, prefix: str, suffixes: tuple[str, ...], dictionaries: dict) -> list[str]:
+    """Translate several code columns of one actor, keeping first-seen order."""
+    labels: list[str] = []
+    for suffix in suffixes:
+        col = f"{prefix}{suffix}"
+        label = translate_code(row.get(col), dictionaries.get(col, {}))
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
 def verbalize_actor(row: Any, prefix: str, dictionaries: dict) -> Optional[str]:
     """Build a natural-language actor phrase from GDELT actor columns.
 
@@ -73,14 +84,14 @@ def verbalize_actor(row: Any, prefix: str, dictionaries: dict) -> Optional[str]:
     name = normalize_name(name)
     name_lc = name.lower()
 
-    role = translate_code(row.get(f"{prefix}Type1Code"),
-                          dictionaries.get(f"{prefix}Type1Code", {}))
+    # Every family receives all three type codes and both religion codes, so
+    # the text must carry them too; a repeated label is written once.
+    roles = _unique_labels(row, prefix, ("Type1Code", "Type2Code", "Type3Code"), dictionaries)
 
     known_group = translate_code(row.get(f"{prefix}KnownGroupCode"),
                                  dictionaries.get(f"{prefix}KnownGroupCode", {}))
 
-    religion = translate_code(row.get(f"{prefix}Religion1Code"),
-                              dictionaries.get(f"{prefix}Religion1Code", {}))
+    religions = _unique_labels(row, prefix, ("Religion1Code", "Religion2Code"), dictionaries)
 
     ethnic = translate_code(row.get(f"{prefix}EthnicCode"),
                             dictionaries.get(f"{prefix}EthnicCode", {}))
@@ -96,14 +107,13 @@ def verbalize_actor(row: Any, prefix: str, dictionaries: dict) -> Optional[str]:
 
     phrase = name
 
-    if role:
-        phrase = f"{phrase} ({role})"
+    if roles:
+        phrase = f"{phrase} ({'; '.join(roles)})"
 
     descriptors = []
     if known_group:
         descriptors.append(known_group)
-    if religion:
-        descriptors.append(religion.lower())
+    descriptors.extend(religion.lower() for religion in religions)
     if ethnic:
         descriptors.append(ethnic)
 
