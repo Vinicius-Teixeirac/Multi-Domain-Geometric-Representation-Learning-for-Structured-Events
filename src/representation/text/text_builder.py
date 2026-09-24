@@ -22,10 +22,18 @@ __all__ = [
 ]
 
 def translate_code(code: Any, dictionary: dict) -> Optional[str]:
-    """Return the human-readable label for a CAMEO code, or None if missing/null."""
+    """Return the human-readable label for a CAMEO code, or None if missing/null.
+
+    Dictionary keys are upper case, but GDELT writes some code columns in lower
+    case (99% of EthnicCode values), so the lookup falls back to the upper-cased
+    code. Without it those codes silently resolve to nothing.
+    """
     if code is None or bool(pd.isna(code)) or code == "__NULL__":
         return None
-    return dictionary.get(code)
+    label = dictionary.get(code)
+    if label is None and isinstance(code, str):
+        label = dictionary.get(code.upper())
+    return label
 
 
 def format_day(day: Any) -> Optional[str]:
