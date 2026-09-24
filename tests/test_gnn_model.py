@@ -208,5 +208,6 @@ class TestHeterogeneousGNNForwardBatch:
 
         assert "event" in model.node_embeddings
         assert "actor" in model.node_embeddings
-        assert model.node_embeddings["event"].num_embeddings == NUM_EVENTS
+        # An event is new in every split, so events share one learned row.
+        assert model.node_embeddings["event"].num_embeddings == 1
         assert model.node_embeddings["actor"].num_embeddings == NUM_ACTORS
