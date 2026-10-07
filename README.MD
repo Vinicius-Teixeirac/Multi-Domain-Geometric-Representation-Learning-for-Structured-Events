@@ -1,6 +1,6 @@
 # Multi-Domain Geometric Representation Learning for Structured Events
 
-**This repository is the official experimental code release for a published academic paper.** It is not a general-purpose library: it is the exact codebase used to produce every baseline and ablation result reported in **"Multi-Domain Geometric Representation Learning for Structured Events,"** published in the proceedings of **BRACIS 2026** (Brazilian Conference on Intelligent Systems).
+**This repository is the official experimental code release for a published academic paper.** It is the exact codebase used to produce every baseline and ablation result reported in **"Multi-Domain Geometric Representation Learning for Structured Events,"** published in the proceedings of **BRACIS 2026** (Brazilian Conference on Intelligent Systems).
 
 > **Published:** Springer, *Intelligent Systems: BRACIS 2026*, LNAI 17107, pp. 187-202, DOI [`10.1007/978-3-032-39895-6_13`](https://doi.org/10.1007/978-3-032-39895-6_13). Online since 1 October 2026.
 
