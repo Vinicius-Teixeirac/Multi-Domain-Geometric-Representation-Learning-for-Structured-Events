@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the chapter below."
+title: "Multi-Domain Geometric Representation Learning for Structured Events"
+type: software
+authors:
+  - family-names: Freitas
+    given-names: "Vinícius T. C."
+    affiliation: "Institute of Mathematics and Computer Sciences (ICMC), University of São Paulo (USP)"
+  - family-names: Sakiyama
+    given-names: "Kenzo M."
+    affiliation: "Institute of Mathematics and Computer Sciences (ICMC), University of São Paulo (USP)"
+  - family-names: Marcacini
+    given-names: "Ricardo M."
+    affiliation: "Institute of Mathematics and Computer Sciences (ICMC), University of São Paulo (USP)"
+repository-code: "https://github.com/Vinicius-Teixeirac/Multi-Domain-Geometric-Representation-Learning-for-Structured-Events"
+license: MIT
+preferred-citation:
+  type: conference-paper
+  title: "Multi-domain Geometric Representation Learning for Structured Events"
+  authors:
+    - family-names: Freitas
+      given-names: "Vinícius T. C."
+    - family-names: Sakiyama
+      given-names: "Kenzo M."
+    - family-names: Marcacini
+      given-names: "Ricardo M."
+  editors:
+    - family-names: Recamonde-Mendoza
+      given-names: "M."
+    - family-names: Barros
+      given-names: "R. C."
+  collection-title: "Intelligent Systems: BRACIS 2026"
+  collection-type: proceedings
+  conference:
+    name: "Brazilian Conference on Intelligent Systems (BRACIS 2026)"
+  publisher:
+    name: Springer
+  volume: 17107
+  start: 187
+  end: 202
+  year: 2027
+  isbn: "978-3-032-39895-6"
+  doi: "10.1007/978-3-032-39895-6_13"
