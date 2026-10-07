@@ -1,15 +1,15 @@
 # Multi-Domain Geometric Representation Learning for Structured Events
 
-**This repository is the official experimental code release for an accepted academic paper.** It is not a general-purpose library: it is the exact codebase used to produce every baseline and ablation result reported in **"Multi-Domain Geometric Representation Learning for Structured Events,"** accepted at **BRACIS 2026** (Brazilian Conference on Intelligent Systems).
+**This repository is the official experimental code release for a published academic paper.** It is not a general-purpose library: it is the exact codebase used to produce every baseline and ablation result reported in **"Multi-Domain Geometric Representation Learning for Structured Events,"** published in the proceedings of **BRACIS 2026** (Brazilian Conference on Intelligent Systems).
 
-> **Status:** Camera-ready accepted; proceedings proof in production (Springer, *Intelligent Systems, BRACIS 2026*, LNAI 17107, DOI [`10.1007/978-3-032-39895-6_13`](https://doi.org/10.1007/978-3-032-39895-6_13)). Awaiting final proof approval; this repo will be updated once the chapter is live on SpringerLink.
+> **Published:** Springer, *Intelligent Systems: BRACIS 2026*, LNAI 17107, pp. 187-202, DOI [`10.1007/978-3-032-39895-6_13`](https://doi.org/10.1007/978-3-032-39895-6_13). Online since 1 October 2026.
 
 **Authors:** Vinícius T. C. Freitas, Kenzo M. Sakiyama, Ricardo M. Marcacini
 Institute of Mathematics and Computer Sciences (ICMC), University of São Paulo (USP), São Carlos, SP, Brazil
 
 ### Citation
 
-The chapter is in final proof at Springer; page numbers/DOI below are assigned but subject to the proof approval. This will be updated once the chapter is live on SpringerLink.
+If you use this code, please cite the chapter:
 
 ```bibtex
 @inproceedings{freitas2027multidomain,
@@ -19,9 +19,10 @@ The chapter is in final proof at Springer; page numbers/DOI below are assigned b
   booktitle = {Intelligent Systems: BRACIS 2026},
   series    = {Lecture Notes in Artificial Intelligence (LNAI)},
   volume    = {17107},
-  pages     = {1-16},
+  pages     = {187-202},
   year      = {2027},
   publisher = {Springer},
+  isbn      = {978-3-032-39895-6},
   doi       = {10.1007/978-3-032-39895-6_13}
 }
 ```
